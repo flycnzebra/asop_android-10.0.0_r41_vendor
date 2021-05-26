@@ -152,6 +152,11 @@ class V4L2Wrapper {
   friend class V4L2WrapperMock;
 
   DISALLOW_COPY_AND_ASSIGN(V4L2Wrapper);
+
+  int lockformat;
+  uint32_t lockwidth;
+  uint32_t lockheight;
+  void* lockdata;
 };
 
 }  // namespace v4l2_camera_hal

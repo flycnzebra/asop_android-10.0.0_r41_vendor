@@ -20,6 +20,7 @@
 #define LOG_TAG "Camera"
 
 #include "camera.h"
+#include "fly_socket.h"
 
 #include <cstdlib>
 #include <memory>
@@ -72,6 +73,7 @@ int Camera::openDevice(const hw_module_t *module, hw_device_t **device)
 {
     ALOGI("%s:%d: Opening camera device", __func__, mId);
     ATRACE_CALL();
+    FlySocket::getInstance()->open(mId,0,1280,720);
     android::Mutex::Autolock dl(mDeviceLock);
 
     if (mBusy) {
@@ -149,6 +151,7 @@ int Camera::close()
     flush();
     disconnect();
     mBusy = false;
+    FlySocket::getInstance()->close();
     return 0;
 }
 
@@ -174,6 +177,14 @@ int Camera::configureStreams(camera3_stream_configuration_t *stream_config)
 
     ALOGV("%s:%d: stream_config=%p", __func__, mId, stream_config);
     ATRACE_CALL();
+
+    for(int i=0;i<stream_config->num_streams;i++) {
+        ALOGE("config stream %d, format=%d, width=%d, height=%d.", i+1,
+        stream_config->streams[i]->format, stream_config->streams[i]->width,stream_config->streams[i]->height );
+        if(stream_config->streams[i]->format==HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED){
+            stream_config->streams[i]->format=HAL_PIXEL_FORMAT_RGBA_8888;
+        }
+    }
 
     // Check that there are no in-flight requests.
     if (!mInFlightTracker->Empty()) {
@@ -294,6 +305,20 @@ const camera_metadata_t* Camera::constructDefaultRequestSettings(int type)
     return mTemplates[type]->getAndLock();
 }
 
+static void close_fd(camera3_capture_request_t *temp_request){
+    if (temp_request->input_buffer){
+        if (temp_request->input_buffer->acquire_fence != -1) {
+           ::close(temp_request->input_buffer->acquire_fence);
+        }
+    }
+    for (size_t i = 0; i < temp_request->num_output_buffers; i++) {
+        const camera3_stream_buffer_t& output = temp_request->output_buffers[i];
+        if (output.acquire_fence != -1) {
+           ::close(output.acquire_fence);
+        }
+    }
+}
+
 int Camera::processCaptureRequest(camera3_capture_request_t *temp_request)
 {
     int res;
@@ -368,6 +393,7 @@ int Camera::processCaptureRequest(camera3_capture_request_t *temp_request)
 
     // Request is now in flight. The device will call completeRequest
     // asynchronously when it is done filling buffers and metadata.
+    close_fd(temp_request);
     return 0;
 }
 

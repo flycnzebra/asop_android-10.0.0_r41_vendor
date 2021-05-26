@@ -31,14 +31,28 @@ v4l2_shared_libs := \
   liblog \
   libsync \
   libutils \
+  libavcodec-57 \
+  libavdevice-57 \
+  libavfilter-6 \
+  libavformat-57 \
+  libavutil-55 \
+  libpostproc-54 \
+  libswresample-2 \
+  libswscale-4 \
 
 v4l2_static_libs := \
   libyuv_static \
   libjpeg_static_ndk \
 
-v4l2_cflags := -fno-short-enums -Wall -Wextra -Werror -fvisibility=hidden -DHAVE_JPEG
+v4l2_cflags := -fno-short-enums -Wall -Wextra -Werror -fvisibility=hidden -DHAVE_JPEG \
+  -Wno-unused-parameter \
+  -Wno-format \
+  -Wno-shift-count-overflow \
+  -Wno-sign-compare \
 
-v4l2_c_includes := $(call include-path-for, camera) \
+v4l2_c_includes := $(LOCAL_PATH) \
+  $(LOCAL_PATH)/../../lib/ffmpeg/include \
+  $(call include-path-for, camera) \
   external/libyuv/files/include \
 
 v4l2_src_files := \
@@ -61,6 +75,7 @@ v4l2_src_files := \
   v4l2_camera_hal.cpp \
   v4l2_metadata_factory.cpp \
   v4l2_wrapper.cpp \
+  fly_socket.cpp \
 
 v4l2_test_files := \
   format_metadata_factory_test.cpp \
@@ -89,6 +104,7 @@ v4l2_test_files := \
 include $(CLEAR_VARS)
 LOCAL_MODULE := camera.v4l2
 LOCAL_MODULE_RELATIVE_PATH := hw
+LOCAL_32_BIT_ONLY := $(BOARD_QTI_CAMERA_32BIT_ONLY)
 LOCAL_CFLAGS += $(v4l2_cflags)
 LOCAL_SHARED_LIBRARIES := $(v4l2_shared_libs)
 LOCAL_STATIC_LIBRARIES := \

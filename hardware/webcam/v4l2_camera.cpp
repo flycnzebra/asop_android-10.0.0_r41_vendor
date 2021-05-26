@@ -47,7 +47,7 @@ V4L2Camera* V4L2Camera::NewV4L2Camera(int id, const std::string path) {
   }
 
   std::unique_ptr<Metadata> metadata;
-  int res = GetV4L2Metadata(v4l2_wrapper, &metadata);
+  int res = GetV4L2Metadata(v4l2_wrapper, &metadata, id);
   if (res) {
     HAL_LOGE("Failed to initialize V4L2 metadata: %d", res);
     return nullptr;
@@ -209,6 +209,13 @@ V4L2Camera::dequeueRequest() {
 
 bool V4L2Camera::enqueueRequestBuffers() {
   // Get a request from the queue (blocks this thread until one is available).
+  struct timespec t = {.tv_sec = 0, .tv_nsec = 0};
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    int64_t current_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
+    int sleep_time = (int)(1000000/30 - ((int)((current_time-last_time)&0x00000000FFFFFFFF)));
+    if(sleep_time > 0 ){
+       usleep(sleep_time);
+  }
   std::shared_ptr<default_camera_hal::CaptureRequest> request =
       dequeueRequest();
 
@@ -225,6 +232,8 @@ bool V4L2Camera::enqueueRequestBuffers() {
   if (res) {
     HAL_LOGE("Failed to set settings.");
     completeRequest(request, res);
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    last_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
     return true;
   }
 
@@ -238,6 +247,8 @@ bool V4L2Camera::enqueueRequestBuffers() {
     // and completeRequest will simply do nothing).
     HAL_LOGE("Failed to fill result metadata.");
     completeRequest(request, res);
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    last_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
     return true;
   }
 
@@ -246,6 +257,8 @@ bool V4L2Camera::enqueueRequestBuffers() {
   if (res) {
     HAL_LOGE("Device failed to enqueue buffer.");
     completeRequest(request, res);
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    last_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
     return true;
   }
 
@@ -256,12 +269,16 @@ bool V4L2Camera::enqueueRequestBuffers() {
     // Don't really want to send an error for only the request here,
     // since this is a full device error.
     // TODO: Should trigger full flush.
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    last_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
     return true;
   }
 
   std::unique_lock<std::mutex> lock(in_flight_lock_);
   in_flight_buffer_count_++;
   buffers_in_flight_.notify_one();
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  last_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
   return true;
 }
 
@@ -328,31 +345,31 @@ int V4L2Camera::setupStreams(camera3_stream_configuration_t* stream_config) {
   uint32_t width = stream->width;
   uint32_t height = stream->height;
 
-  if (stream_config->num_streams > 1) {
-    // TODO(b/29939583):  V4L2 doesn't actually support more than 1
-    // stream at a time. If not all streams are the same format
-    // and size, error. Note that this means the HAL is not spec-compliant.
-    // Technically, this error should be thrown during validation, but
-    // since it isn't a spec-valid error validation isn't set up to check it.
-    for (uint32_t i = 1; i < stream_config->num_streams; ++i) {
-      stream = stream_config->streams[i];
-      if (stream->format != format || stream->width != width ||
-          stream->height != height) {
-        HAL_LOGE(
-            "V4L2 only supports 1 stream configuration at a time "
-            "(stream 0 is format %d, width %u, height %u, "
-            "stream %d is format %d, width %u, height %u).",
-            format,
-            width,
-            height,
-            i,
-            stream->format,
-            stream->width,
-            stream->height);
-        return -EINVAL;
-      }
-    }
-  }
+  //if (stream_config->num_streams > 1) {
+  //  // TODO(b/29939583):  V4L2 doesn't actually support more than 1
+  //  // stream at a time. If not all streams are the same format
+  //  // and size, error. Note that this means the HAL is not spec-compliant.
+  //  // Technically, this error should be thrown during validation, but
+  //  // since it isn't a spec-valid error validation isn't set up to check it.
+  //  for (uint32_t i = 1; i < stream_config->num_streams; ++i) {
+  //    stream = stream_config->streams[i];
+  //    if (stream->format != format || stream->width != width ||
+  //        stream->height != height) {
+  //      HAL_LOGE(
+  //          "V4L2 only supports 1 stream configuration at a time "
+  //          "(stream 0 is format %d, width %u, height %u, "
+  //          "stream %d is format %d, width %u, height %u).",
+  //          format,
+  //          width,
+  //          height,
+  //          i,
+  //          stream->format,
+  //          stream->width,
+  //          stream->height);
+  //      return -EINVAL;
+  //    }
+  //  }
+  //}
 
   // Ensure the stream is off.
   int res = device_->StreamOff();

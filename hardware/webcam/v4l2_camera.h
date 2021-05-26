@@ -108,6 +108,8 @@ class V4L2Camera : public default_camera_hal::Camera {
   std::array<int, 3> max_output_streams_;  // {raw, non-stalling, stalling}.
 
   DISALLOW_COPY_AND_ASSIGN(V4L2Camera);
+
+  int64_t last_time = 0;
 };
 
 }  // namespace v4l2_camera_hal

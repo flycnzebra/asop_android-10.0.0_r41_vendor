@@ -29,6 +29,8 @@
 #include <sys/types.h>
 #include "arc/cached_frame.h"
 
+#include "fly_socket.h"
+
 namespace v4l2_camera_hal {
 
 using arc::AllocatedFrameBuffer;
@@ -36,19 +38,10 @@ using arc::SupportedFormat;
 using arc::SupportedFormats;
 using default_camera_hal::CaptureRequest;
 
-const int32_t kStandardSizes[][2] = {
-  {4096, 2160}, // 4KDCI (for USB camera)
-  {3840, 2160}, // 4KUHD (for USB camera)
-  {3280, 2464}, // 8MP
-  {2560, 1440}, // QHD
-  {1920, 1080}, // HD1080
-  {1640, 1232}, // 2MP
-  {1280,  720}, // HD
-  {1024,  768}, // XGA
-  { 640,  480}, // VGA
-  { 320,  240}, // QVGA
-  { 176,  144}  // QCIF
-};
+//const int32_t kStandardSizes[][2] = {
+//  {1280,  720}, // HD
+//  { 640,  360}  // VGA
+//};
 
 V4L2Wrapper* V4L2Wrapper::NewV4L2Wrapper(const std::string device_path) {
   return new V4L2Wrapper(device_path);
@@ -71,10 +64,10 @@ int V4L2Wrapper::Connect() {
 
   // Open in nonblocking mode (DQBUF may return EAGAIN).
   int fd = TEMP_FAILURE_RETRY(open(device_path_.c_str(), O_RDWR | O_NONBLOCK));
-  if (fd < 0) {
-    HAL_LOGE("failed to open %s (%s)", device_path_.c_str(), strerror(errno));
-    return -ENODEV;
-  }
+  //if (fd < 0) {
+  //  HAL_LOGE("failed to open %s (%s)", device_path_.c_str(), strerror(errno));
+  //  return -ENODEV;
+  //}
   device_fd_.reset(fd);
   ++connection_count_;
 
@@ -128,11 +121,14 @@ int V4L2Wrapper::IoctlLocked(unsigned long request, T data) {
   // Potentially called so many times logging entry is a bad idea.
   std::lock_guard<std::mutex> lock(device_lock_);
 
-  if (!connected()) {
-    HAL_LOGE("Device %s not connected.", device_path_.c_str());
-    return -ENODEV;
-  }
-  return TEMP_FAILURE_RETRY(ioctl(device_fd_.get(), request, data));
+  //if (!connected()) {
+  //  HAL_LOGE("Device %s not connected.", device_path_.c_str());
+  //  return -ENODEV;
+  //}
+  //return TEMP_FAILURE_RETRY(ioctl(device_fd_.get(), request, data));
+  int ret =  TEMP_FAILURE_RETRY(ioctl(device_fd_.get(), request, data));
+  if(ret < 0) ret = 0;
+  return ret;
 }
 
 int V4L2Wrapper::StreamOn() {
@@ -177,22 +173,22 @@ int V4L2Wrapper::StreamOff() {
 
 int V4L2Wrapper::QueryControl(uint32_t control_id,
                               v4l2_query_ext_ctrl* result) {
-  int res;
+  //int res;
 
   memset(result, 0, sizeof(*result));
 
-  if (extended_query_supported_) {
-    result->id = control_id;
-    res = IoctlLocked(VIDIOC_QUERY_EXT_CTRL, result);
-    // Assuming the operation was supported (not ENOTTY), no more to do.
-    if (errno != ENOTTY) {
-      if (res) {
-        HAL_LOGE("QUERY_EXT_CTRL fails: %s", strerror(errno));
-        return -ENODEV;
-      }
-      return 0;
-    }
-  }
+  //if (extended_query_supported_) {
+  //  result->id = control_id;
+  //  res = IoctlLocked(VIDIOC_QUERY_EXT_CTRL, result);
+  //  // Assuming the operation was supported (not ENOTTY), no more to do.
+  //  if (errno != ENOTTY) {
+  //    if (res) {
+  //      HAL_LOGE("QUERY_EXT_CTRL fails: %s", strerror(errno));
+  //      return -ENODEV;
+  //    }
+  //    return 0;
+  //  }
+  //}
 
   // Extended control querying not supported, fall back to basic control query.
   v4l2_queryctrl query;
@@ -200,6 +196,36 @@ int V4L2Wrapper::QueryControl(uint32_t control_id,
   if (IoctlLocked(VIDIOC_QUERYCTRL, &query)) {
     HAL_LOGE("QUERYCTRL fails: %s", strerror(errno));
     return -ENODEV;
+  }
+
+  switch(control_id){
+    case V4L2_CID_EXPOSURE_ABSOLUTE:
+      query.type = 1;
+      query.minimum = 1;
+      query.maximum = 5000;
+      query.step = 1;
+      query.default_value = 625;
+      //query.name=Exposure (Absolute);
+      break;
+    case V4L2_CID_ISO_SENSITIVITY:
+      HAL_LOGE("QUERYCTRL fails: V4L2_CID_ISO_SENSITIVITY =%d", V4L2_CID_ISO_SENSITIVITY);
+      return -ENODEV;
+      break;
+    case V4L2_CID_AUTO_WHITE_BALANCE:
+      query.type=2;
+      query.minimum=0;
+      query.maximum=1;
+      query.step=1;
+      query.default_value=1;
+      //query.name=White Balance Temperature, Auto;
+      break;
+    case V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE:
+      HAL_LOGE("QUERYCTRL fails: V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE =%d", V4L2_CID_AUTO_N_PRESET_WHITE_BALANCE);
+      return -ENODEV;
+      break;
+    default:
+      return -ENODEV;
+      break;
   }
 
   // Convert the basic result to the extended result.
@@ -345,11 +371,13 @@ int V4L2Wrapper::GetFormats(std::set<uint32_t>* v4l2_formats) {
   v4l2_fmtdesc format_query;
   memset(&format_query, 0, sizeof(format_query));
   // TODO(b/30000211): multiplanar support.
-  format_query.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  while (IoctlLocked(VIDIOC_ENUM_FMT, &format_query) >= 0) {
-    v4l2_formats->insert(format_query.pixelformat);
-    ++format_query.index;
-  }
+  //format_query.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  //while (IoctlLocked(VIDIOC_ENUM_FMT, &format_query) >= 0) {
+  //  v4l2_formats->insert(format_query.pixelformat);
+  //  ++format_query.index;
+  //}
+  v4l2_formats->insert(V4L2_PIX_FMT_JPEG);
+  v4l2_formats->insert(V4L2_PIX_FMT_YUV420);
 
   if (errno != EINVAL) {
     HAL_LOGE(
@@ -384,61 +412,62 @@ int V4L2Wrapper::GetFormatFrameSizes(uint32_t v4l2_format,
     HAL_LOGE("ENUM_FRAMESIZES failed: %s", strerror(errno));
     return -ENODEV;
   }
-  if (size_query.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
-    // Discrete: enumerate all sizes using VIDIOC_ENUM_FRAMESIZES.
-    // Assuming that a driver with discrete frame sizes has a reasonable number
-    // of them.
-    do {
-      sizes->insert({{{static_cast<int32_t>(size_query.discrete.width),
-                       static_cast<int32_t>(size_query.discrete.height)}}});
-      ++size_query.index;
-    } while (IoctlLocked(VIDIOC_ENUM_FRAMESIZES, &size_query) >= 0);
-    if (errno != EINVAL) {
-      HAL_LOGE("ENUM_FRAMESIZES fails at index %d: %s",
-               size_query.index,
-               strerror(errno));
-      return -ENODEV;
-    }
-  } else {
-    // Continuous/Step-wise: based on the stepwise struct returned by the query.
-    // Fully listing all possible sizes, with large enough range/small enough
-    // step size, may produce far too many potential sizes. Instead, find the
-    // closest to a set of standard sizes.
-    for (const auto size : kStandardSizes) {
-      // Find the closest size, rounding up.
-      uint32_t desired_width = size[0];
-      uint32_t desired_height = size[1];
-      if (desired_width < size_query.stepwise.min_width ||
-          desired_height < size_query.stepwise.min_height) {
-        HAL_LOGV("Standard size %u x %u is too small for format %d",
-                 desired_width,
-                 desired_height,
-                 v4l2_format);
-        continue;
-      } else if (desired_width > size_query.stepwise.max_width ||
-                 desired_height > size_query.stepwise.max_height) {
-        HAL_LOGV("Standard size %u x %u is too big for format %d",
-                 desired_width,
-                 desired_height,
-                 v4l2_format);
-        continue;
-      }
-
-      // Round up.
-      uint32_t width_steps = (desired_width - size_query.stepwise.min_width +
-                              size_query.stepwise.step_width - 1) /
-                             size_query.stepwise.step_width;
-      uint32_t height_steps = (desired_height - size_query.stepwise.min_height +
-                               size_query.stepwise.step_height - 1) /
-                              size_query.stepwise.step_height;
-      sizes->insert(
-          {{{static_cast<int32_t>(size_query.stepwise.min_width +
-                                  width_steps * size_query.stepwise.step_width),
-             static_cast<int32_t>(size_query.stepwise.min_height +
-                                  height_steps *
-                                      size_query.stepwise.step_height)}}});
-    }
-  }
+  //if (size_query.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+  //  // Discrete: enumerate all sizes using VIDIOC_ENUM_FRAMESIZES.
+  //  // Assuming that a driver with discrete frame sizes has a reasonable number
+  //  // of them.
+  //  do {
+  //    sizes->insert({{{static_cast<int32_t>(size_query.discrete.width),
+  //                     static_cast<int32_t>(size_query.discrete.height)}}});
+  //    ++size_query.index;
+  //  } while (IoctlLocked(VIDIOC_ENUM_FRAMESIZES, &size_query) >= 0);
+  //  if (errno != EINVAL) {
+  //    HAL_LOGE("ENUM_FRAMESIZES fails at index %d: %s",
+  //             size_query.index,
+  //             strerror(errno));
+  //    return -ENODEV;
+  //  }
+  //} else {
+  //  // Continuous/Step-wise: based on the stepwise struct returned by the query.
+  //  // Fully listing all possible sizes, with large enough range/small enough
+  //  // step size, may produce far too many potential sizes. Instead, find the
+  //  // closest to a set of standard sizes.
+  //  for (const auto size : kStandardSizes) {
+  //    // Find the closest size, rounding up.
+  //    uint32_t desired_width = size[0];
+  //    uint32_t desired_height = size[1];
+  //    if (desired_width < size_query.stepwise.min_width ||
+  //        desired_height < size_query.stepwise.min_height) {
+  //      HAL_LOGV("Standard size %u x %u is too small for format %d",
+  //               desired_width,
+  //               desired_height,
+  //               v4l2_format);
+  //      continue;
+  //    } else if (desired_width > size_query.stepwise.max_width ||
+  //               desired_height > size_query.stepwise.max_height) {
+  //      HAL_LOGV("Standard size %u x %u is too big for format %d",
+  //               desired_width,
+  //               desired_height,
+  //               v4l2_format);
+  //      continue;
+  //    }
+//
+  //    // Round up.
+  //    uint32_t width_steps = (desired_width - size_query.stepwise.min_width +
+  //                            size_query.stepwise.step_width - 1) /
+  //                           size_query.stepwise.step_width;
+  //    uint32_t height_steps = (desired_height - size_query.stepwise.min_height +
+  //                             size_query.stepwise.step_height - 1) /
+  //                            size_query.stepwise.step_height;
+  //    sizes->insert(
+  //        {{{static_cast<int32_t>(size_query.stepwise.min_width +
+  //                                width_steps * size_query.stepwise.step_width),
+  //           static_cast<int32_t>(size_query.stepwise.min_height +
+  //                                height_steps *
+  //                                    size_query.stepwise.step_height)}}});
+  //  }
+  //}
+  sizes->insert({{{static_cast<int32_t>(1280), static_cast<int32_t>(720)}}});
   return 0;
 }
 
@@ -463,28 +492,30 @@ int V4L2Wrapper::GetFormatFrameDurationRange(
     return -ENODEV;
   }
 
-  int64_t min = std::numeric_limits<int64_t>::max();
-  int64_t max = std::numeric_limits<int64_t>::min();
-  if (duration_query.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
-    // Discrete: enumerate all durations using VIDIOC_ENUM_FRAMEINTERVALS.
-    do {
-      min = std::min(min, FractToNs(duration_query.discrete));
-      max = std::max(max, FractToNs(duration_query.discrete));
-      ++duration_query.index;
-    } while (IoctlLocked(VIDIOC_ENUM_FRAMEINTERVALS, &duration_query) >= 0);
-    if (errno != EINVAL) {
-      HAL_LOGE("ENUM_FRAMEINTERVALS fails at index %d: %s",
-               duration_query.index,
-               strerror(errno));
-      return -ENODEV;
-    }
-  } else {
-    // Continuous/Step-wise: simply convert the given min and max.
-    min = FractToNs(duration_query.stepwise.min);
-    max = FractToNs(duration_query.stepwise.max);
-  }
-  (*duration_range)[0] = min;
-  (*duration_range)[1] = max;
+  //int64_t min = std::numeric_limits<int64_t>::max();
+  //int64_t max = std::numeric_limits<int64_t>::min();
+  //if (duration_query.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+  //  // Discrete: enumerate all durations using VIDIOC_ENUM_FRAMEINTERVALS.
+  //  do {
+  //    min = std::min(min, FractToNs(duration_query.discrete));
+  //    max = std::max(max, FractToNs(duration_query.discrete));
+  //    ++duration_query.index;
+  //  } while (IoctlLocked(VIDIOC_ENUM_FRAMEINTERVALS, &duration_query) >= 0);
+  //  if (errno != EINVAL) {
+  //    HAL_LOGE("ENUM_FRAMEINTERVALS fails at index %d: %s",
+  //             duration_query.index,
+  //             strerror(errno));
+  //    return -ENODEV;
+  //  }
+  //} else {
+  //  // Continuous/Step-wise: simply convert the given min and max.
+  //  min = FractToNs(duration_query.stepwise.min);
+  //  max = FractToNs(duration_query.stepwise.max);
+  //}
+  //(*duration_range)[0] = min;
+  //(*duration_range)[1] = max;
+  (*duration_range)[0] = 33333333;
+  (*duration_range)[1] = 83333333;
   return 0;
 }
 
@@ -492,11 +523,11 @@ int V4L2Wrapper::SetFormat(const StreamFormat& desired_format,
                            uint32_t* result_max_buffers) {
   HAL_LOG_ENTER();
 
-  if (format_ && desired_format == *format_) {
-    HAL_LOGV("Already in correct format, skipping format setting.");
-    *result_max_buffers = buffers_.size();
-    return 0;
-  }
+  //if (format_ && desired_format == *format_) {
+  //  HAL_LOGV("Already in correct format, skipping format setting.");
+  //  *result_max_buffers = buffers_.size();
+  //  return 0;
+  //}
 
   if (format_) {
     // If we had an old format, first request 0 buffers to inform the device
@@ -613,13 +644,13 @@ int V4L2Wrapper::EnqueueRequest(
 
   // Use QUERYBUF to ensure our buffer/device is in good shape,
   // and fill out remaining fields.
-  if (IoctlLocked(VIDIOC_QUERYBUF, &device_buffer) < 0) {
-    HAL_LOGE("QUERYBUF fails: %s", strerror(errno));
-    // Return buffer index.
-    std::lock_guard<std::mutex> guard(buffer_queue_lock_);
-    buffers_[index].active = false;
-    return -ENODEV;
-  }
+  //if (IoctlLocked(VIDIOC_QUERYBUF, &device_buffer) < 0) {
+  //  HAL_LOGE("QUERYBUF fails: %s", strerror(errno));
+  //  // Return buffer index.
+  //  std::lock_guard<std::mutex> guard(buffer_queue_lock_);
+  //  buffers_[index].active = false;
+  //  return -ENODEV;
+  //}
 
   // Setup our request context and fill in the user pointer field.
   RequestContext* request_context;
@@ -638,10 +669,16 @@ int V4L2Wrapper::EnqueueRequest(
   device_buffer.m.userptr = reinterpret_cast<unsigned long>(data);
 
   // Pass the buffer to the camera.
-  if (IoctlLocked(VIDIOC_QBUF, &device_buffer) < 0) {
-    HAL_LOGE("QBUF fails: %s", strerror(errno));
-    return -ENODEV;
-  }
+  //if (IoctlLocked(VIDIOC_QBUF, &device_buffer) < 0) {
+  //  HAL_LOGE("QBUF fails: %s", strerror(errno));
+  //  return -ENODEV;
+  //}
+
+  lockformat = format_->v4l2_pixel_format();
+  lockwidth = format_->width();
+  lockheight = format_->height();
+  lockdata = reinterpret_cast<void*>(device_buffer.m.userptr);
+  FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
 
   // Mark the buffer as in flight.
   std::lock_guard<std::mutex> guard(buffer_queue_lock_);

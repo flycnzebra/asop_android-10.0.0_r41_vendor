@@ -55,58 +55,71 @@ V4L2CameraHAL::V4L2CameraHAL() : mCameras(), mCallbacks(NULL) {
   HAL_LOG_ENTER();
   // Adds all available V4L2 devices.
   // List /dev nodes.
-  DIR* dir = opendir("/dev");
-  if (dir == NULL) {
-    HAL_LOGE("Failed to open /dev");
-    return;
+  //DIR* dir = opendir("/dev");
+  //if (dir == NULL) {
+  //  HAL_LOGE("Failed to open /dev");
+  //  return;
+  //}
+  //// Find /dev/video* nodes.
+  //dirent* ent;
+  //std::vector<std::string> nodes;
+  //while ((ent = readdir(dir))) {
+  //  std::string desired = "video";
+  //  size_t len = desired.size();
+  //  if (strncmp(desired.c_str(), ent->d_name, len) == 0) {
+  //    if (strlen(ent->d_name) > len && isdigit(ent->d_name[len])) {
+  //      // ent is a numbered video node.
+  //      nodes.push_back(std::string("/dev/") + ent->d_name);
+  //      HAL_LOGV("Found video node %s.", nodes.back().c_str());
+  //    }
+  //  }
+  //}
+  //// Test each for V4L2 support and uniqueness.
+  //std::unordered_set<std::string> buses;
+  //std::string bus;
+  //v4l2_capability cap;
+  //int fd;
+  //int id = 0;
+  //for (const auto& node : nodes) {
+  //  // Open the node.
+  //  fd = TEMP_FAILURE_RETRY(open(node.c_str(), O_RDWR));
+  //  if (fd < 0) {
+  //    HAL_LOGE("failed to open %s (%s).", node.c_str(), strerror(errno));
+  //    continue;
+  //  }
+  //  // Read V4L2 capabilities.
+  //  if (TEMP_FAILURE_RETRY(ioctl(fd, VIDIOC_QUERYCAP, &cap)) != 0) {
+  //    HAL_LOGE(
+  //        "VIDIOC_QUERYCAP on %s fail: %s.", node.c_str(), strerror(errno));
+  //  } else if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
+  //    HAL_LOGE("%s is not a V4L2 video capture device.", node.c_str());
+  //  } else {
+  //    // If the node is unique, add a camera for it.
+  //    bus = reinterpret_cast<char*>(cap.bus_info);
+  //    if (buses.insert(bus).second) {
+  //      HAL_LOGV("Found unique bus at %s.", node.c_str());
+  //      std::unique_ptr<V4L2Camera> cam(V4L2Camera::NewV4L2Camera(id++, node));
+  //      if (cam) {
+  //        mCameras.push_back(std::move(cam));
+  //      } else {
+  //        HAL_LOGE("Failed to initialize camera at %s.", node.c_str());
+  //      }
+  //    }
+  //  }
+  //  close(fd);
+  //}
+
+  std::unique_ptr<V4L2Camera> cam1(V4L2Camera::NewV4L2Camera(0, "/dev/video1"));
+  if (cam1) {
+    mCameras.push_back(std::move(cam1));
+  } else {
+    HAL_LOGE("Failed to initialize camera 1");
   }
-  // Find /dev/video* nodes.
-  dirent* ent;
-  std::vector<std::string> nodes;
-  while ((ent = readdir(dir))) {
-    std::string desired = "video";
-    size_t len = desired.size();
-    if (strncmp(desired.c_str(), ent->d_name, len) == 0) {
-      if (strlen(ent->d_name) > len && isdigit(ent->d_name[len])) {
-        // ent is a numbered video node.
-        nodes.push_back(std::string("/dev/") + ent->d_name);
-        HAL_LOGV("Found video node %s.", nodes.back().c_str());
-      }
-    }
-  }
-  // Test each for V4L2 support and uniqueness.
-  std::unordered_set<std::string> buses;
-  std::string bus;
-  v4l2_capability cap;
-  int fd;
-  int id = 0;
-  for (const auto& node : nodes) {
-    // Open the node.
-    fd = TEMP_FAILURE_RETRY(open(node.c_str(), O_RDWR));
-    if (fd < 0) {
-      HAL_LOGE("failed to open %s (%s).", node.c_str(), strerror(errno));
-      continue;
-    }
-    // Read V4L2 capabilities.
-    if (TEMP_FAILURE_RETRY(ioctl(fd, VIDIOC_QUERYCAP, &cap)) != 0) {
-      HAL_LOGE(
-          "VIDIOC_QUERYCAP on %s fail: %s.", node.c_str(), strerror(errno));
-    } else if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) {
-      HAL_LOGE("%s is not a V4L2 video capture device.", node.c_str());
-    } else {
-      // If the node is unique, add a camera for it.
-      bus = reinterpret_cast<char*>(cap.bus_info);
-      if (buses.insert(bus).second) {
-        HAL_LOGV("Found unique bus at %s.", node.c_str());
-        std::unique_ptr<V4L2Camera> cam(V4L2Camera::NewV4L2Camera(id++, node));
-        if (cam) {
-          mCameras.push_back(std::move(cam));
-        } else {
-          HAL_LOGE("Failed to initialize camera at %s.", node.c_str());
-        }
-      }
-    }
-    close(fd);
+  std::unique_ptr<V4L2Camera> cam2(V4L2Camera::NewV4L2Camera(1, "/dev/video2"));
+  if (cam2) {
+    mCameras.push_back(std::move(cam2));
+  } else {
+    HAL_LOGE("Failed to initialize camera 2");
   }
 }
 

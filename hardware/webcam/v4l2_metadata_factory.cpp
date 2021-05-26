@@ -41,7 +41,8 @@ const int32_t kV4L2SensitivityDenominator = 1000;
 const size_t kV4L2MaxJpegSize = 6000000;
 
 int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
-                    std::unique_ptr<Metadata>* result) {
+                    std::unique_ptr<Metadata>* result,
+                    int id) {
   HAL_LOG_ENTER();
 
   // Open a temporary connection to the device for all the V4L2 querying
@@ -91,7 +92,14 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
   components.insert(
       NoEffectMenuControl<uint8_t>(ANDROID_CONTROL_AF_MODE,
                                    ANDROID_CONTROL_AF_AVAILABLE_MODES,
-                                   {ANDROID_CONTROL_AF_MODE_OFF}));
+                                   {ANDROID_CONTROL_AF_MODE_OFF,
+                                    ANDROID_CONTROL_AF_MODE_AUTO,
+                                    ANDROID_CONTROL_AF_MODE_MACRO,
+                                    ANDROID_CONTROL_AF_MODE_CONTINUOUS_VIDEO,
+                                    ANDROID_CONTROL_AF_MODE_CONTINUOUS_PICTURE,
+                                    ANDROID_CONTROL_AF_MODE_EDOF},
+                                   {{CAMERA3_TEMPLATE_STILL_CAPTURE, ANDROID_CONTROL_AF_MODE_OFF},
+                                           {OTHER_TEMPLATES, ANDROID_CONTROL_AF_MODE_OFF}}));
   // TODO(b/31021522): Should read autofocus state from
   // V4L2_CID_AUTO_FOCUS_STATUS bitmask. The framework gets a little more
   // complex than that does; there's a whole state-machine table in
@@ -103,18 +111,25 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
   // of the useless controls in this class, since technically they should
   // revert back to IDLE eventually after START/CANCEL, but for now they won't
   // unless IDLE is requested.
-  components.insert(
-      NoEffectMenuControl<uint8_t>(ANDROID_CONTROL_AF_TRIGGER,
-                                   DO_NOT_REPORT_OPTIONS,
-                                   {ANDROID_CONTROL_AF_TRIGGER_IDLE,
-                                    ANDROID_CONTROL_AF_TRIGGER_START,
-                                    ANDROID_CONTROL_AF_TRIGGER_CANCEL}));
+  components.insert(NoEffectMenuControl<uint8_t>(
+      ANDROID_CONTROL_AF_TRIGGER,
+      DO_NOT_REPORT_OPTIONS,
+      {ANDROID_CONTROL_AF_TRIGGER_IDLE,
+       ANDROID_CONTROL_AF_TRIGGER_START,
+       ANDROID_CONTROL_AF_TRIGGER_CANCEL},
+      {}));
+  HAL_LOGE("ANDROID_CONTROL_AF_TRIGGER=%d",ANDROID_CONTROL_AF_TRIGGER);
+
   components.insert(NoEffectMenuControl<uint8_t>(
       ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER,
       DO_NOT_REPORT_OPTIONS,
       {ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER_IDLE,
        ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER_START,
-       ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL}));
+       ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL
+      },
+      {}));
+  HAL_LOGE("ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER=%d",ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER);
+
   components.insert(V4L2ControlOrDefault<uint8_t>(
       ControlType::kMenu,
       ANDROID_CONTROL_AE_ANTIBANDING_MODE,
@@ -163,17 +178,28 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
     components.insert(std::move(sensitivity));
     ae_mode_mapping.emplace(V4L2_EXPOSURE_MANUAL, ANDROID_CONTROL_AE_MODE_OFF);
   }
-  components.insert(V4L2ControlOrDefault<uint8_t>(
-      ControlType::kMenu,
-      ANDROID_CONTROL_AE_MODE,
+
+  //components.insert(V4L2ControlOrDefault<uint8_t>(
+  //    ControlType::kMenu,
+  //    ANDROID_CONTROL_AE_MODE,
+  //    ANDROID_CONTROL_AE_AVAILABLE_MODES,
+  //    device,
+  //    V4L2_CID_EXPOSURE_AUTO,
+  //    std::shared_ptr<ConverterInterface<uint8_t, int32_t>>(
+  //        new EnumConverter(ae_mode_mapping)),
+  //    ANDROID_CONTROL_AE_MODE_ON,
+  //    {{CAMERA3_TEMPLATE_MANUAL, ANDROID_CONTROL_AE_MODE_OFF},
+  //     {OTHER_TEMPLATES, ANDROID_CONTROL_AE_MODE_ON}}));
+
+  components.insert(NoEffectMenuControl<uint8_t>(ANDROID_CONTROL_AE_MODE,
       ANDROID_CONTROL_AE_AVAILABLE_MODES,
-      device,
-      V4L2_CID_EXPOSURE_AUTO,
-      std::shared_ptr<ConverterInterface<uint8_t, int32_t>>(
-          new EnumConverter(ae_mode_mapping)),
-      ANDROID_CONTROL_AE_MODE_ON,
-      {{CAMERA3_TEMPLATE_MANUAL, ANDROID_CONTROL_AE_MODE_OFF},
-       {OTHER_TEMPLATES, ANDROID_CONTROL_AE_MODE_ON}}));
+      {ANDROID_CONTROL_AE_MODE_OFF,
+       ANDROID_CONTROL_AE_MODE_ON,
+       ANDROID_CONTROL_AE_MODE_ON_AUTO_FLASH,
+       ANDROID_CONTROL_AE_MODE_ON_ALWAYS_FLASH,
+       ANDROID_CONTROL_AE_MODE_ON_AUTO_FLASH_REDEYE},
+      {{CAMERA3_TEMPLATE_STILL_CAPTURE, ANDROID_CONTROL_AE_MODE_OFF},
+              {OTHER_TEMPLATES, ANDROID_CONTROL_AE_MODE_OFF}}));
   // Can't get AE status from V4L2.
   // TODO(b/30510395): If AE mode is OFF, this should switch to INACTIVE.
   components.insert(FixedState<uint8_t>(ANDROID_CONTROL_AE_STATE,
@@ -227,17 +253,21 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
   components.insert(std::unique_ptr<PartialMetadataInterface>(
       new Property<uint8_t>(ANDROID_CONTROL_AE_LOCK_AVAILABLE,
                             ANDROID_CONTROL_AE_LOCK_AVAILABLE_FALSE)));
-  components.insert(
-      NoEffectMenuControl<uint8_t>(ANDROID_CONTROL_AE_LOCK,
-                                   DO_NOT_REPORT_OPTIONS,
-                                   {ANDROID_CONTROL_AE_LOCK_OFF}));
+  components.insert(NoEffectMenuControl<uint8_t>(
+      ANDROID_CONTROL_AE_LOCK,
+      DO_NOT_REPORT_OPTIONS,
+      {ANDROID_CONTROL_AE_LOCK_OFF}));
+  HAL_LOGE("ANDROID_CONTROL_AE_LOCK=%d",ANDROID_CONTROL_AE_LOCK);
+
   components.insert(std::unique_ptr<PartialMetadataInterface>(
       new Property<uint8_t>(ANDROID_CONTROL_AWB_LOCK_AVAILABLE,
                             ANDROID_CONTROL_AWB_LOCK_AVAILABLE_FALSE)));
-  components.insert(
-      NoEffectMenuControl<uint8_t>(ANDROID_CONTROL_AWB_LOCK,
-                                   DO_NOT_REPORT_OPTIONS,
-                                   {ANDROID_CONTROL_AWB_LOCK_OFF}));
+  components.insert(NoEffectMenuControl<uint8_t>(
+      ANDROID_CONTROL_AWB_LOCK,
+      DO_NOT_REPORT_OPTIONS,
+      {ANDROID_CONTROL_AWB_LOCK_OFF}));
+  HAL_LOGE("ANDROID_CONTROL_AWB_LOCK=%d",ANDROID_CONTROL_AWB_LOCK);
+
   // TODO(b/30510395): subcomponents of scene modes
   // (may itself be a subcomponent of 3A).
   // Modes from each API that don't match up:
@@ -332,7 +362,7 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
   // Always assume external-facing.
   components.insert(
       std::unique_ptr<PartialMetadataInterface>(new Property<uint8_t>(
-          ANDROID_LENS_FACING, ANDROID_LENS_FACING_EXTERNAL)));
+          ANDROID_LENS_FACING, id==0?ANDROID_LENS_FACING_BACK:ANDROID_LENS_FACING_FRONT)));
   components.insert(
       NoEffectMenuControl<float>(ANDROID_LENS_FOCAL_LENGTH,
                                  ANDROID_LENS_INFO_AVAILABLE_FOCAL_LENGTHS,
@@ -477,7 +507,7 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
       new Property<uint8_t>(ANDROID_SCALER_CROPPING_TYPE,
                             ANDROID_SCALER_CROPPING_TYPE_FREEFORM)));
   // Spoof pixel array size for now, eventually get from CROPCAP.
-  std::array<int32_t, 2> pixel_array_size = {{3280, 2464}};
+  std::array<int32_t, 2> pixel_array_size = {{1280, 720}};
   components.insert(std::unique_ptr<PartialMetadataInterface>(
       new Property<std::array<int32_t, 2>>(ANDROID_SENSOR_INFO_PIXEL_ARRAY_SIZE,
                                            pixel_array_size)));
@@ -511,7 +541,7 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
       FixedState<int64_t>(ANDROID_SENSOR_ROLLING_SHUTTER_SKEW, 0));
   // No way to actually get orientation from V4L2.
   components.insert(std::unique_ptr<PartialMetadataInterface>(
-      new Property<int32_t>(ANDROID_SENSOR_ORIENTATION, 0)));
+      new Property<int32_t>(ANDROID_SENSOR_ORIENTATION, 90)));
   // TODO(b/31023611): Sensor frame duration. Range should
   // be dependent on the stream configuration being used.
   // No test patterns supported.
