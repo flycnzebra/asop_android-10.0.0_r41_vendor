@@ -1,7 +1,4 @@
-#PRODUCT_PACKAGES += FlyOta
-
-PRODUCT_COPY_FILES += vendor/copyfiles/mbn_sw.txt:$(TARGET_COPY_OUT_VENDOR)/rfs/msm/mpss/readonly/vendor/mbn/mcfg_sw/mbn_sw.txt
-
+#set property
 PRODUCT_PROPERTY_OVERRIDES += \
 ro.mtk_ims_support=1
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -26,3 +23,10 @@ PRODUCT_PROPERTY_OVERRIDES += \
 persist.radio.data_con_rprt=1
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.radio.calls.on.ims=1
+
+#copy file
+PRODUCT_COPY_FILES += vendor/copyfiles/mbn_sw.txt:$(TARGET_COPY_OUT_VENDOR)/rfs/msm/mpss/readonly/vendor/mbn/mcfg_sw/mbn_sw.txt
+
+#add install app
+PRODUCT_PACKAGES += Fota
+
