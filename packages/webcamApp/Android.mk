@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 # Module name should match apk name to be installed
 LOCAL_MODULE := webcamApp
 LOCAL_MODULE_TAGS := optional
-LOCAL_SRC_FILES := com.flyzebra.player_release_v1.08.3725725.202105191816_101.apk
+LOCAL_SRC_FILES := com.flyzebra.player_release_v1.08.39692da.202105282027_105.apk
 LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_CERTIFICATE := platform

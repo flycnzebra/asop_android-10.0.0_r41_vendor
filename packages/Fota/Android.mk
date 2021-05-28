@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 # Module name should match apk name to be installed
 LOCAL_MODULE := Fota
 LOCAL_MODULE_TAGS := optional
-LOCAL_SRC_FILES := com.flyzebra.fota_release_v1.03.e425ec0.202105261750_32.apk
+LOCAL_SRC_FILES := com.flyzebra.fota_release_v1.03.8826546.202105281757_35.apk
 LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_CERTIFICATE := platform
