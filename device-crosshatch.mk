@@ -20,15 +20,6 @@ include device/google/crosshatch/device-common.mk
 
 DEVICE_PACKAGE_OVERLAYS += device/google/crosshatch/crosshatch/overlay
 
-# SKU specific RROs
-PRODUCT_PACKAGES += \
-    SettingsOverlayG013C \
-    SettingsOverlayG013D \
-
-# Setup wizard overlay packages for ActiveEdge
-PRODUCT_PACKAGES += \
-    PixelSetupWizardOverlayActiveEdge \
-
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/init.insmod.crosshatch.cfg:$(TARGET_COPY_OUT_VENDOR)/etc/init.insmod.cfg
 
@@ -39,19 +30,9 @@ PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/audio_platform_info_tavil_c1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_tavil_c1.xml
 
 PRODUCT_COPY_FILES += \
-    device/google/crosshatch/nfc/libnfc-nxp.crosshatch.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nxp.conf \
-    device/google/crosshatch/nfc/libnfc-nxp.crosshatch.uicc.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nxp-G013C.conf \
-    device/google/crosshatch/nfc/libnfc-nxp.crosshatch.ese.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nxp-G013D.conf
+    device/google/crosshatch/nfc/libnfc-nxp.crosshatch.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nxp.conf
 
 PRODUCT_PACKAGES += \
     NoCutoutOverlay
-
-# Enable iorapd prefetching by default for crosshatch targets
-PRODUCT_PRODUCT_PROPERTIES += \
-    iorapd.readahead.enable=true
-
-# Disable Camera Pinning by default for crosshatch targets
-PRODUCT_PRODUCT_PROPERTIES += \
-    pinner.pin_camera=false
-
+    
 include vendor/zebra/device-common.mk

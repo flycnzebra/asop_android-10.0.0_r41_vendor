@@ -9,7 +9,7 @@
 #include <ctime>
 #include <string>
 
-#include <libyuv.h>
+#include <libyuvz.h>
 #include "arc/common.h"
 #include "arc/exif_utils.h"
 #include "arc/jpeg_compressor.h"

@@ -39,8 +39,17 @@ using arc::SupportedFormats;
 using default_camera_hal::CaptureRequest;
 
 //const int32_t kStandardSizes[][2] = {
+//  {4096, 2160}, // 4KDCI (for USB camera)
+//  {3840, 2160}, // 4KUHD (for USB camera)
+//  {3280, 2464}, // 8MP
+//  {2560, 1440}, // QHD
+//  {1920, 1080}, // HD1080
+//  {1640, 1232}, // 2MP
 //  {1280,  720}, // HD
-//  { 640,  360}  // VGA
+//  {1024,  768}, // XGA
+//  { 640,  480}, // VGA
+//  { 320,  240}, // QVGA
+//  { 176,  144}  // QCIF
 //};
 
 V4L2Wrapper* V4L2Wrapper::NewV4L2Wrapper(const std::string device_path) {
@@ -376,14 +385,16 @@ int V4L2Wrapper::GetFormats(std::set<uint32_t>* v4l2_formats) {
   //  v4l2_formats->insert(format_query.pixelformat);
   //  ++format_query.index;
   //}
+
   v4l2_formats->insert(V4L2_PIX_FMT_JPEG);
   v4l2_formats->insert(V4L2_PIX_FMT_YUV420);
 
-  if (errno != EINVAL) {
-    HAL_LOGE(
-        "ENUM_FMT fails at index %d: %s", format_query.index, strerror(errno));
-    return -ENODEV;
-  }
+
+  //if (errno != EINVAL) {
+  //  HAL_LOGE(
+  //      "ENUM_FMT fails at index %d: %s", format_query.index, strerror(errno));
+  //  return -ENODEV;
+  //}
   return 0;
 }
 
@@ -412,6 +423,12 @@ int V4L2Wrapper::GetFormatFrameSizes(uint32_t v4l2_format,
     HAL_LOGE("ENUM_FRAMESIZES failed: %s", strerror(errno));
     return -ENODEV;
   }
+  sizes->insert({{{static_cast<int32_t>(1280), static_cast<int32_t>(720)}}});
+  //sizes->insert({{{static_cast<int32_t>(1024), static_cast<int32_t>(576)}}});
+  //sizes->insert({{{static_cast<int32_t>(960), static_cast<int32_t>(540)}}});
+  //sizes->insert({{{static_cast<int32_t>(640), static_cast<int32_t>(360)}}});
+
+  //
   //if (size_query.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
   //  // Discrete: enumerate all sizes using VIDIOC_ENUM_FRAMESIZES.
   //  // Assuming that a driver with discrete frame sizes has a reasonable number
@@ -467,7 +484,7 @@ int V4L2Wrapper::GetFormatFrameSizes(uint32_t v4l2_format,
   //                                    size_query.stepwise.step_height)}}});
   //  }
   //}
-  sizes->insert({{{static_cast<int32_t>(1280), static_cast<int32_t>(720)}}});
+  HAL_LOGE("sizes = %d",sizes->size());
   return 0;
 }
 

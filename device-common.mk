@@ -25,8 +25,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
 persist.radio.calls.on.ims=1
 
 #copy file
-PRODUCT_COPY_FILES += vendor/copyfiles/mbn_sw.txt:$(TARGET_COPY_OUT_VENDOR)/rfs/msm/mpss/readonly/vendor/mbn/mcfg_sw/mbn_sw.txt
+#PRODUCT_COPY_FILES += vendor/copyfiles/mbn_sw.txt:$(TARGET_COPY_OUT_VENDOR)/rfs/msm/mpss/readonly/vendor/mbn/mcfg_sw/mbn_sw.txt
 
 #add install app
+PRODUCT_PACKAGES +=mbn_sw.txt
 PRODUCT_PACKAGES += Fota
-
+PRODUCT_PACKAGES += webcamApp

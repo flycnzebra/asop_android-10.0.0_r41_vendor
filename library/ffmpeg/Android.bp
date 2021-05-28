@@ -1,0 +1,104 @@
+cc_prebuilt_library_shared {
+    name: "libavcodec-57",
+    vendor_available: true,
+    arch: {
+        arm: {
+           srcs: ["lib/libavcodec-57.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libavcodec-57.so"],
+        },
+    },
+    export_include_dirs: ["include"],
+}
+
+cc_prebuilt_library_shared {
+    name: "libavdevice-57",
+    vendor_available: true,
+    arch: {
+        arm: {
+            srcs: ["lib/libavdevice-57.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libavdevice-57.so"],
+        },
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libavfilter-6",
+    vendor_available: true,
+    arch: {
+        arm: {
+            srcs: ["lib/libavfilter-6.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libavfilter-6.so"],
+        },
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libavformat-57",
+    vendor_available: true,
+    arch: {
+        arm: {
+            srcs: ["lib/libavformat-57.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libavformat-57.so"],
+        },
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libavutil-55",
+    vendor_available: true,
+    arch: {
+        arm: {
+            srcs: ["lib/libavutil-55.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libavutil-55.so"],
+        },
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libpostproc-54",
+    vendor_available: true,
+    arch: {
+        arm: {
+            srcs: ["lib/libpostproc-54.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libpostproc-54.so"],
+        },
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libswresample-2",
+    vendor_available: true,
+    arch: {
+        arm: {
+            srcs: ["lib/libswresample-2.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libswresample-2.so"],
+        },
+    },
+}
+
+cc_prebuilt_library_shared {
+    name: "libswscale-4",
+    vendor_available: true,
+    arch: {
+        arm: {
+            srcs: ["lib/libswscale-4.so"],
+        },
+        arm64: {
+            srcs: ["lib64/libswscale-4.so"],
+        },
+    },
+}

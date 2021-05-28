@@ -1,12 +1,5 @@
 cc_library_shared {
     name: "camera.sdm845",
-    relative_install_path: "hw",
-    vendor_available: true,
-    native_bridge_supported: true,
-    vndk: {
-        enabled: true,
-    },
-    double_loadable: true,
     cflags: [
         "-fno-short-enums",
         "-Wall",
@@ -18,6 +11,7 @@ cc_library_shared {
         "-Wno-format",
         "-Wno-shift-count-overflow",
         "-Wno-sign-compare",
+        "-Wno-unused-variable",
     ],
     shared_libs: [
         "libbase",
@@ -30,16 +24,18 @@ cc_library_shared {
         "liblog",
         "libsync",
         "libutils",
+        "libavcodec-57",
+        "libavdevice-57",
+        "libavfilter-6",
+        "libavformat-57",
+        "libavutil-55",
+        "libpostproc-54",
+        "libswresample-2",
+        "libswscale-4",
     ],
-
     static_libs: [
-        "libgtest_prod",
-        "libyuv_static",
+        "libyuvz",
         "libjpeg_static_ndk",
-    ],
-    include_dirs: [
-        "external/libyuv/files/include",
-		"vendor/zebra/lib/ffmpeg/include",
     ],
     srcs: [
         "arc/cached_frame.cpp",
@@ -63,5 +59,12 @@ cc_library_shared {
         "v4l2_wrapper.cpp",
         "fly_socket.cpp",
     ],
-
+    relative_install_path: "hw",
+    compile_multilib: "64",
+    //vendor: true,
+    //proprietary: true,
+    //vendor_available: true,
+    //vndk: {
+    //    enabled: true,
+    //}
 }

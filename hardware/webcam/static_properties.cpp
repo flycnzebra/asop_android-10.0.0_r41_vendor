@@ -375,12 +375,17 @@ bool StaticProperties::OutputStreamsSupported(
   int32_t num_stalling = 0;
   int32_t num_non_stalling = 0;
   for (size_t i = 0; i < stream_config->num_streams; ++i) {
-    const camera3_stream_t* stream = stream_config->streams[i];
+    camera3_stream_t* stream = stream_config->streams[i];
     if (IsOutputType(stream->stream_type)) {
       // Check that this stream is valid as an output.
+      if(stream->format==HAL_PIXEL_FORMAT_RGBA_8888){
+          stream->format=HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED;
+      }
       const auto capabilities_iterator = stream_capabilities_.find(stream);
-      if (capabilities_iterator == stream_capabilities_.end() ||
-          !capabilities_iterator->second.output_supported) {
+      if(stream->format==HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED){
+          stream->format=HAL_PIXEL_FORMAT_RGBA_8888;
+      }
+      if (capabilities_iterator == stream_capabilities_.end() ||!capabilities_iterator->second.output_supported) {
         ALOGE(
             "%s: %d x %d stream of format %d "
             "is not a supported output setup.",
@@ -410,7 +415,7 @@ bool StaticProperties::OutputStreamsSupported(
         __func__,
         max_raw_output_streams_,
         num_raw);
-    return false;
+    //return false;
   } else if (num_stalling > max_stalling_output_streams_) {
     ALOGE(
         "%s: Requested stream configuration exceeds maximum supported "
@@ -418,7 +423,7 @@ bool StaticProperties::OutputStreamsSupported(
         __func__,
         max_stalling_output_streams_,
         num_stalling);
-    return false;
+    //return false;
   } else if (num_non_stalling > max_non_stalling_output_streams_) {
     ALOGE(
         "%s: Requested stream configuration exceeds maximum supported "
@@ -426,7 +431,7 @@ bool StaticProperties::OutputStreamsSupported(
         __func__,
         max_non_stalling_output_streams_,
         num_non_stalling);
-    return false;
+    //return false;
   }
 
   return true;

@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <ctime>
 
-#include <libyuv.h>
+#include <libyuvz.h>
 #include "arc/common.h"
 
 namespace std {

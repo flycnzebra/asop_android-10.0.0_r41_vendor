@@ -7,7 +7,7 @@
 
 #include <cerrno>
 
-#include <libyuv.h>
+#include <libyuvz.h>
 #include "arc/common.h"
 
 namespace arc {
