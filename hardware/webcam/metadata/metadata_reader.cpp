@@ -15,7 +15,7 @@
  */
 
 // #define LOG_NDEBUG 0
-#define LOG_TAG "MetadataReader"
+#define LOG_TAG "WEBCAM-MetadataReader"
 
 #include "metadata_reader.h"
 

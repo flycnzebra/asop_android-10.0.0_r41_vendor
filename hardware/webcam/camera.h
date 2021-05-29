@@ -19,7 +19,7 @@
 #ifndef DEFAULT_CAMERA_HAL_CAMERA_H_
 #define DEFAULT_CAMERA_HAL_CAMERA_H_
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include <hardware/hardware.h>
 #include <hardware/camera3.h>
 #include <utils/Mutex.h>

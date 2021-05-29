@@ -20,7 +20,7 @@
 #include <memory>
 #include <vector>
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include <hardware/camera3.h>
 
 namespace default_camera_hal {

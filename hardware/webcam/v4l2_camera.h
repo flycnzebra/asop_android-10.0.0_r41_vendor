@@ -24,7 +24,7 @@
 #include <queue>
 #include <string>
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include <utils/StrongPointer.h>
 #include <utils/Thread.h>
 #include "camera.h"

@@ -19,7 +19,7 @@
 
 #include <vector>
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 
 namespace v4l2_camera_hal {
 

@@ -16,7 +16,7 @@
 
 #include "format_metadata_factory.h"
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 

@@ -20,7 +20,7 @@
 #include <array>
 #include <vector>
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include <gtest/gtest.h>
 #include "array_vector.h"
 #include "metadata_common.h"

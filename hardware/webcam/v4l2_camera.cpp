@@ -15,14 +15,14 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "V4L2Camera"
+#define LOG_TAG "WEBCAM-V4L2Camera"
 
 #include "v4l2_camera.h"
 
 #include <cstdlib>
 #include <fcntl.h>
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include <hardware/camera3.h>
 #include <linux/videodev2.h>
 #include <sys/stat.h>

@@ -2,7 +2,7 @@
 // Created by FlyZebra on 2020/9/2 0002.
 //
 //#define LOG_NDEBUG 0
-#define LOG_TAG "ZEBRA-WCAM-SS"
+#define LOG_TAG "WEBCAM-ZEBRA-WCAM-SS"
 
 #include <cutils/log.h>
 #include <stdio.h>

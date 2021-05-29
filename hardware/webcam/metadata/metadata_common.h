@@ -22,7 +22,7 @@
 #include <set>
 #include <vector>
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include "array_vector.h"
 #include "common.h"
 #include "partial_metadata_interface.h"

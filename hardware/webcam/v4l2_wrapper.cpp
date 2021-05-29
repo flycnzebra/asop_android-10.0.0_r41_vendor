@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "V4L2Wrapper"
+#define LOG_TAG "WEBCAM-V4L2Wrapper"
 
 #include "v4l2_wrapper.h"
 

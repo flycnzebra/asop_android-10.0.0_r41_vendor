@@ -22,7 +22,7 @@
 #include <vector>
 
 #include <android-base/macros.h>
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include "types.h"
 
 namespace default_camera_hal {

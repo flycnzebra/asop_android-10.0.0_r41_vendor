@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "FormatMetadataFactory"
+#define LOG_TAG "WEBCAM-FormatMetadataFactory"
 
 #include "format_metadata_factory.h"
 

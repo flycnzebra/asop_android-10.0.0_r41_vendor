@@ -15,7 +15,7 @@
  */
 
 // #define LOG_NDEBUG 0
-#define LOG_TAG "RequestTracker"
+#define LOG_TAG "WEBCAM-RequestTracker"
 
 #include "request_tracker.h"
 

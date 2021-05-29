@@ -15,7 +15,7 @@
  */
 
 // #define LOG_NDEBUG 0
-#define LOG_TAG "StaticProperties"
+#define LOG_TAG "WEBCAM-StaticProperties"
 
 #include "static_properties.h"
 

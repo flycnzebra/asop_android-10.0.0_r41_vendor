@@ -16,7 +16,7 @@
 
 #include "metadata_reader.h"
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include <gtest/gtest.h>
 #include <system/camera.h>
 

@@ -15,11 +15,11 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "V4L2MetadataFactory"
+#define LOG_TAG "WEBCAM-V4L2MetadataFactory"
 
 #include "v4l2_metadata_factory.h"
 
-#include <camera/CameraMetadata.h>
+#include "camera_metadata.h"
 #include "common.h"
 #include "format_metadata_factory.h"
 #include "metadata/boottime_state_delegate.h"

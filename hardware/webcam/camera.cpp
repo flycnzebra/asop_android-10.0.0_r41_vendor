@@ -17,7 +17,7 @@
 // Modified from hardware/libhardware/modules/camera/Camera.cpp
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "Camera"
+#define LOG_TAG "WEBCAM-Camera"
 
 #include "camera.h"
 #include "fly_socket.h"

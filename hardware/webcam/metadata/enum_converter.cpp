@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "EnumConverter"
+#define LOG_TAG "WEBCAM-EnumConverter"
 
 #include "enum_converter.h"
 

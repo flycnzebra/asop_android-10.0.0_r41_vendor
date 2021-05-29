@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "BoottimeStateDelegate"
+#define LOG_TAG "WEBCAM-BoottimeStateDelegate"
 
 #include "boottime_state_delegate.h"
 
