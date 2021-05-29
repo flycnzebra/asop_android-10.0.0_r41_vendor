@@ -34,6 +34,7 @@ persist.radio.mcwill.pid=81.98.97.25
 PRODUCT_PACKAGES +=mbn_sw.txt
 PRODUCT_PACKAGES += fota
 PRODUCT_PACKAGES += webcam
+
 ##c10 m-stream
 #PRODUCT_PACKAGES += ratd
 #PRODUCT_PACKAGES += mpc
