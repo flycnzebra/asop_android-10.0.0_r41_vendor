@@ -1,0 +1,5 @@
+#webcam need permissive
+allow hal_camera_default system_app:unix_stream_socket connectto;
+allow hal_audio_default system_app:unix_stream_socket connectto;
+allow system_app camera_data_file:dir { open read search };
+allow system_app camera_data_file:lnk_file { read getattr };

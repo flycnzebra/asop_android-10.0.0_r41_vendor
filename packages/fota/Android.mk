@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 # Module name should match apk name to be installed
-LOCAL_MODULE := Fota
+LOCAL_MODULE := fota
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := com.flyzebra.fota_release_v1.03.8826546.202105281757_35.apk
 LOCAL_MODULE_CLASS := APPS

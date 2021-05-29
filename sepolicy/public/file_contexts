@@ -1,0 +1,2 @@
+/dev/socket/socket_ratd                         u:object_r:ratd_socket:s0
+/system/bin/ratd                                u:object_r:ratd_exec:s0

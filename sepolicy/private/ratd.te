@@ -1,0 +1,4 @@
+typeattribute ratd coredomain;
+typeattribute ratd domain_deprecated;
+
+init_daemon_domain(ratd)

@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 # Module name should match apk name to be installed
-LOCAL_MODULE := webcamApp
+LOCAL_MODULE := webcam
 LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := com.flyzebra.player_release_v1.08.39692da.202105282027_105.apk
 LOCAL_MODULE_CLASS := APPS
