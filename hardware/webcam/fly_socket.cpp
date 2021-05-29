@@ -2,7 +2,7 @@
 // Created by FlyZebra on 2020/9/2 0002.
 //
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-ZEBRA-WCAM-SS"
+#define LOG_TAG "ZEBRA-WCAM-SOCKET"
 
 #include <cutils/log.h>
 #include <stdio.h>
@@ -540,7 +540,7 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
     readHeight = height;
     switch (format) {
         case HAL_PIXEL_FORMAT_YCbCr_420_888:
-            memcpy(frame, yuvFrame, width * height * 3 / 2);
+            //memcpy(frame, yuvFrame, width * height * 3 / 2);
             if(is_debug==1){
                 test_count1++;
                 if(crtTime/1000000>last_time1/1000000){
@@ -551,7 +551,7 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
             }
             break;
         case HAL_PIXEL_FORMAT_BLOB:
-            memcpy(frame, yuvFrame, width * height * 3 / 2);
+            //memcpy(frame, yuvFrame, width * height * 3 / 2);
             if(is_debug==1){
                 test_count2++;
                 if(crtTime/1000000>last_time2/1000000){
@@ -564,7 +564,7 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
         case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
         case HAL_PIXEL_FORMAT_RGBA_8888:
         default:
-            memcpy(frame, rgbFrame, width * height * 4);
+            //memcpy(frame, rgbFrame, width * height * 4);
             if(is_debug==1){
                 test_count3++;
                 if(crtTime/1000000>last_time3/1000000){

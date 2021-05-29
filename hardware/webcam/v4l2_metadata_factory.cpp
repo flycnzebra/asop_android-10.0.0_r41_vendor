@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-V4L2MetadataFactory"
+#define LOG_TAG "ZEBRA-WCAM-MF"
 
 #include "v4l2_metadata_factory.h"
 
@@ -118,7 +118,6 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
        ANDROID_CONTROL_AF_TRIGGER_START,
        ANDROID_CONTROL_AF_TRIGGER_CANCEL},
       {}));
-  HAL_LOGE("ANDROID_CONTROL_AF_TRIGGER=%d",ANDROID_CONTROL_AF_TRIGGER);
 
   components.insert(NoEffectMenuControl<uint8_t>(
       ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER,
@@ -128,7 +127,6 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
        ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER_CANCEL
       },
       {}));
-  HAL_LOGE("ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER=%d",ANDROID_CONTROL_AE_PRECAPTURE_TRIGGER);
 
   components.insert(V4L2ControlOrDefault<uint8_t>(
       ControlType::kMenu,
@@ -257,7 +255,6 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
       ANDROID_CONTROL_AE_LOCK,
       DO_NOT_REPORT_OPTIONS,
       {ANDROID_CONTROL_AE_LOCK_OFF}));
-  HAL_LOGE("ANDROID_CONTROL_AE_LOCK=%d",ANDROID_CONTROL_AE_LOCK);
 
   components.insert(std::unique_ptr<PartialMetadataInterface>(
       new Property<uint8_t>(ANDROID_CONTROL_AWB_LOCK_AVAILABLE,
@@ -266,7 +263,6 @@ int GetV4L2Metadata(std::shared_ptr<V4L2Wrapper> device,
       ANDROID_CONTROL_AWB_LOCK,
       DO_NOT_REPORT_OPTIONS,
       {ANDROID_CONTROL_AWB_LOCK_OFF}));
-  HAL_LOGE("ANDROID_CONTROL_AWB_LOCK=%d",ANDROID_CONTROL_AWB_LOCK);
 
   // TODO(b/30510395): subcomponents of scene modes
   // (may itself be a subcomponent of 3A).

@@ -17,7 +17,7 @@
 // Modified from hardware/libhardware/modules/camera/CameraHAL.cpp
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-V4L2CameraHAL"
+#define LOG_TAG "ZEBRA-WCAM-CameraHAL"
 
 #include "v4l2_camera_hal.h"
 
@@ -128,7 +128,7 @@ V4L2CameraHAL::~V4L2CameraHAL() {
 }
 
 int V4L2CameraHAL::getNumberOfCameras() {
-  HAL_LOGV("returns %zu", mCameras.size());
+  HAL_LOGE("%s returns %zu", __func__, mCameras.size());
   return mCameras.size();
 }
 

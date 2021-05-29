@@ -16,7 +16,7 @@
 
 // #define LOG_NDEBUG 0
 
-#define LOG_TAG "WEBCAM-Camera2-Metadata"
+#define LOG_TAG "ZEBRA-WCAM-Camera2-Metadata"
 #include <utils/Log.h>
 #include <utils/Errors.h>
 

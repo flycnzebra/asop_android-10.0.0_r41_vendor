@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-StreamFormat"
+#define LOG_TAG "ZEBRA-WCAM-StreamFormat"
 
 #include "stream_format.h"
 

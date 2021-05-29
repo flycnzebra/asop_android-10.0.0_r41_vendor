@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-BoottimeStateDelegate"
+#define LOG_TAG "ZEBRA-WCAM-BSDelegate"
 
 #include "boottime_state_delegate.h"
 

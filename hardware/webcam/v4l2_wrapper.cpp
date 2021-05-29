@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-V4L2Wrapper"
+#define LOG_TAG "ZEBRA-WCAM-Wrapper"
 
 #include "v4l2_wrapper.h"
 
@@ -62,6 +62,7 @@ V4L2Wrapper::V4L2Wrapper(const std::string device_path)
 V4L2Wrapper::~V4L2Wrapper() {}
 
 int V4L2Wrapper::Connect() {
+  HAL_LOGE("%s()", __func__);
   HAL_LOG_ENTER();
   std::lock_guard<std::mutex> lock(connection_lock_);
 
@@ -99,6 +100,7 @@ int V4L2Wrapper::Connect() {
 }
 
 void V4L2Wrapper::Disconnect() {
+  HAL_LOGE("%s()", __func__);
   HAL_LOG_ENTER();
   std::lock_guard<std::mutex> lock(connection_lock_);
 
@@ -182,14 +184,14 @@ int V4L2Wrapper::StreamOff() {
 
 int V4L2Wrapper::QueryControl(uint32_t control_id,
                               v4l2_query_ext_ctrl* result) {
-  //int res;
+  int res;
 
   memset(result, 0, sizeof(*result));
 
-  //if (extended_query_supported_) {
-  //  result->id = control_id;
-  //  res = IoctlLocked(VIDIOC_QUERY_EXT_CTRL, result);
-  //  // Assuming the operation was supported (not ENOTTY), no more to do.
+  if (extended_query_supported_) {
+    result->id = control_id;
+    res = IoctlLocked(VIDIOC_QUERY_EXT_CTRL, result);
+    // Assuming the operation was supported (not ENOTTY), no more to do.
   //  if (errno != ENOTTY) {
   //    if (res) {
   //      HAL_LOGE("QUERY_EXT_CTRL fails: %s", strerror(errno));
@@ -197,7 +199,7 @@ int V4L2Wrapper::QueryControl(uint32_t control_id,
   //    }
   //    return 0;
   //  }
-  //}
+  }
 
   // Extended control querying not supported, fall back to basic control query.
   v4l2_queryctrl query;
@@ -207,6 +209,7 @@ int V4L2Wrapper::QueryControl(uint32_t control_id,
     return -ENODEV;
   }
 
+  // add by tangshiyuan
   switch(control_id){
     case V4L2_CID_EXPOSURE_ABSOLUTE:
       query.type = 1;
@@ -273,6 +276,7 @@ int V4L2Wrapper::QueryControl(uint32_t control_id,
 int V4L2Wrapper::GetControl(uint32_t control_id, int32_t* value) {
   // For extended controls (any control class other than "user"),
   // G_EXT_CTRL must be used instead of G_CTRL.
+  //HAL_LOGE("%s()  control_id=%d", __func__, control_id);
   if (V4L2_CTRL_ID2CLASS(control_id) != V4L2_CTRL_CLASS_USER) {
     v4l2_ext_control control;
     v4l2_ext_controls controls;
@@ -303,6 +307,7 @@ int V4L2Wrapper::GetControl(uint32_t control_id, int32_t* value) {
 int V4L2Wrapper::SetControl(uint32_t control_id,
                             int32_t desired,
                             int32_t* result) {
+  HAL_LOGE("%s()", __func__);
   int32_t result_value = 0;
 
   // TODO(b/29334616): When async, this may need to check if the stream
@@ -376,7 +381,6 @@ const SupportedFormats V4L2Wrapper::GetSupportedFormats() {
 
 int V4L2Wrapper::GetFormats(std::set<uint32_t>* v4l2_formats) {
   HAL_LOG_ENTER();
-
   v4l2_fmtdesc format_query;
   memset(&format_query, 0, sizeof(format_query));
   // TODO(b/30000211): multiplanar support.
@@ -484,7 +488,6 @@ int V4L2Wrapper::GetFormatFrameSizes(uint32_t v4l2_format,
   //                                    size_query.stepwise.step_height)}}});
   //  }
   //}
-  HAL_LOGE("sizes = %d",sizes->size());
   return 0;
 }
 
@@ -539,7 +542,7 @@ int V4L2Wrapper::GetFormatFrameDurationRange(
 int V4L2Wrapper::SetFormat(const StreamFormat& desired_format,
                            uint32_t* result_max_buffers) {
   HAL_LOG_ENTER();
-
+  HAL_LOGE("%s()", __func__);
   //if (format_ && desired_format == *format_) {
   //  HAL_LOGV("Already in correct format, skipping format setting.");
   //  *result_max_buffers = buffers_.size();
@@ -600,10 +603,12 @@ int V4L2Wrapper::SetFormat(const StreamFormat& desired_format,
     return res;
   }
   *result_max_buffers = buffers_.size();
+  HAL_LOGE("%s() finish", __func__);
   return 0;
 }
 
 int V4L2Wrapper::RequestBuffers(uint32_t num_requested) {
+  HAL_LOGE("%s(), num_requested=%d", __func__, num_requested);
   v4l2_requestbuffers req_buffers;
   memset(&req_buffers, 0, sizeof(req_buffers));
   req_buffers.type = format_->type();
@@ -661,14 +666,13 @@ int V4L2Wrapper::EnqueueRequest(
 
   // Use QUERYBUF to ensure our buffer/device is in good shape,
   // and fill out remaining fields.
-  //if (IoctlLocked(VIDIOC_QUERYBUF, &device_buffer) < 0) {
-  //  HAL_LOGE("QUERYBUF fails: %s", strerror(errno));
-  //  // Return buffer index.
-  //  std::lock_guard<std::mutex> guard(buffer_queue_lock_);
-  //  buffers_[index].active = false;
-  //  return -ENODEV;
-  //}
-
+  if (IoctlLocked(VIDIOC_QUERYBUF, &device_buffer) < 0) {
+    HAL_LOGE("QUERYBUF fails: %s", strerror(errno));
+    // Return buffer index.
+    std::lock_guard<std::mutex> guard(buffer_queue_lock_);
+    buffers_[index].active = false;
+    return -ENODEV;
+  }
   // Setup our request context and fill in the user pointer field.
   RequestContext* request_context;
   void* data;
@@ -690,21 +694,19 @@ int V4L2Wrapper::EnqueueRequest(
   //  HAL_LOGE("QBUF fails: %s", strerror(errno));
   //  return -ENODEV;
   //}
-
   lockformat = format_->v4l2_pixel_format();
   lockwidth = format_->width();
   lockheight = format_->height();
   lockdata = reinterpret_cast<void*>(device_buffer.m.userptr);
   FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
-
   // Mark the buffer as in flight.
   std::lock_guard<std::mutex> guard(buffer_queue_lock_);
   request_context->active = true;
-
   return 0;
 }
 
 int V4L2Wrapper::DequeueRequest(std::shared_ptr<CaptureRequest>* request) {
+  //HAL_LOGE("%s", __func__);
   if (!format_) {
     HAL_LOGV(
         "Format not set, so stream can't be on, "
@@ -731,11 +733,9 @@ int V4L2Wrapper::DequeueRequest(std::shared_ptr<CaptureRequest>* request) {
   std::lock_guard<std::mutex> guard(buffer_queue_lock_);
   RequestContext* request_context = &buffers_[buffer.index];
 
-  // Lock the camera stream buffer for painting.
-  const camera3_stream_buffer_t* stream_buffer =
-      &request_context->request->output_buffers[0];
-  uint32_t fourcc =
-      StreamFormat::HalToV4L2PixelFormat(stream_buffer->stream->format);
+  //Lock the camera stream buffer for painting.
+  //const camera3_stream_buffer_t* stream_buffer = &request_context->request->output_buffers[0];
+  //uint32_t fourcc = StreamFormat::HalToV4L2PixelFormat(stream_buffer->stream->format);
 
   if (request) {
     *request = request_context->request;
@@ -745,30 +745,30 @@ int V4L2Wrapper::DequeueRequest(std::shared_ptr<CaptureRequest>* request) {
   // GrallocFrameBuffer does not have support for the transformation to
   // |fourcc|, it will assume that the amount of data to lock is based on
   // |buffer.length|, otherwise it will use the ImageProcessor::ConvertedSize.
-  arc::GrallocFrameBuffer output_frame(
-      *stream_buffer->buffer, stream_buffer->stream->width,
-      stream_buffer->stream->height, fourcc, buffer.length,
-      stream_buffer->stream->usage);
-  res = output_frame.Map();
-  if (res) {
-    HAL_LOGE("Failed to map output frame.");
-    request_context->request.reset();
-    return -EINVAL;
-  }
-  if (request_context->camera_buffer->GetFourcc() == fourcc &&
-      request_context->camera_buffer->GetWidth() ==
-          stream_buffer->stream->width &&
-      request_context->camera_buffer->GetHeight() ==
-          stream_buffer->stream->height) {
-    // If no format conversion needs to be applied, directly copy the data over.
-    memcpy(output_frame.GetData(), request_context->camera_buffer->GetData(),
-           request_context->camera_buffer->GetDataSize());
-  } else {
-    // Perform the format conversion.
-    arc::CachedFrame cached_frame;
-    cached_frame.SetSource(request_context->camera_buffer.get(), 0);
-    cached_frame.Convert(request_context->request->settings, &output_frame);
-  }
+  //arc::GrallocFrameBuffer output_frame(
+  //    *stream_buffer->buffer, stream_buffer->stream->width,
+  //    stream_buffer->stream->height, fourcc, buffer.length,
+  //    stream_buffer->stream->usage);
+  //res = output_frame.Map();
+  //if (res) {
+  //  HAL_LOGE("Failed to map output frame.");
+  //  request_context->request.reset();
+  //  return -EINVAL;
+  //}
+  //if (request_context->camera_buffer->GetFourcc() == fourcc &&
+  //    request_context->camera_buffer->GetWidth() ==
+  //        stream_buffer->stream->width &&
+  //    request_context->camera_buffer->GetHeight() ==
+  //        stream_buffer->stream->height) {
+  //  // If no format conversion needs to be applied, directly copy the data over.
+  //  memcpy(output_frame.GetData(), request_context->camera_buffer->GetData(),
+  //         request_context->camera_buffer->GetDataSize());
+  //} else {
+  //  // Perform the format conversion.
+  //  arc::CachedFrame cached_frame;
+  //  cached_frame.SetSource(request_context->camera_buffer.get(), 0);
+  //  cached_frame.Convert(request_context->request->settings, &output_frame);
+  //}
 
   request_context->request.reset();
   // Mark the buffer as not in flight.

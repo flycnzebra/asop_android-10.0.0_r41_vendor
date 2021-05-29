@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-EnumConverter"
+#define LOG_TAG "ZEBRA-WCAM-EnumConverter"
 
 #include "enum_converter.h"
 

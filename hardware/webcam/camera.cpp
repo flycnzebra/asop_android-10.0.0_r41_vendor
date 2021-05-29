@@ -17,7 +17,7 @@
 // Modified from hardware/libhardware/modules/camera/Camera.cpp
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-Camera"
+#define LOG_TAG "ZEBRA-WCAM-Camera"
 
 #include "camera.h"
 #include "fly_socket.h"
@@ -71,7 +71,7 @@ Camera::~Camera()
 
 int Camera::openDevice(const hw_module_t *module, hw_device_t **device)
 {
-    ALOGI("%s:%d: Opening camera device", __func__, mId);
+    ALOGE("%s:%d: Opening camera device", __func__, mId);
     ATRACE_CALL();
     FlySocket::getInstance()->open(mId,0,1280,720);
     android::Mutex::Autolock dl(mDeviceLock);
@@ -139,7 +139,7 @@ int Camera::loadStaticInfo() {
 
 int Camera::close()
 {
-    ALOGI("%s:%d: Closing camera device", __func__, mId);
+    ALOGE("%s:%d: Closing camera device", __func__, mId);
     ATRACE_CALL();
     android::Mutex::Autolock dl(mDeviceLock);
 
@@ -159,7 +159,7 @@ int Camera::initialize(const camera3_callback_ops_t *callback_ops)
 {
     int res;
 
-    ALOGV("%s:%d: callback_ops=%p", __func__, mId, callback_ops);
+    ALOGE("%s:%d: callback_ops=%p", __func__, mId, callback_ops);
     mCallbackOps = callback_ops;
     // per-device specific initialization
     res = initDevice();
@@ -266,12 +266,13 @@ int Camera::validateStreamConfiguration(
 
 bool Camera::isValidTemplateType(int type)
 {
+    ALOGE("%s() type=%d", __func__, type);
     return type > 0 && type < CAMERA3_TEMPLATE_COUNT;
 }
 
 const camera_metadata_t* Camera::constructDefaultRequestSettings(int type)
 {
-    ALOGV("%s:%d: type=%d", __func__, mId, type);
+    ALOGE("%s:%d: type=%d", __func__, mId, type);
 
     if (!isValidTemplateType(type)) {
         ALOGE("%s:%d: Invalid template request type: %d", __func__, mId, type);
@@ -330,6 +331,7 @@ int Camera::processCaptureRequest(camera3_capture_request_t *temp_request)
 
     if (temp_request == NULL) {
         ALOGE("%s:%d: NULL request recieved", __func__, mId);
+        close_fd(temp_request);
         return -EINVAL;
     }
 
@@ -347,39 +349,42 @@ int Camera::processCaptureRequest(camera3_capture_request_t *temp_request)
 
     // Null/Empty indicates use last settings
     if (request->settings.isEmpty() && !mSettingsSet) {
-        ALOGE("%s:%d: NULL settings without previous set Frame:%d",
-              __func__, mId, request->frame_number);
+        ALOGE("%s:%d: NULL settings without previous set Frame:%d", __func__, mId, request->frame_number);
+        close_fd(temp_request);
         return -EINVAL;
     }
 
     if (request->input_buffer != NULL) {
-        ALOGV("%s:%d: Reprocessing input buffer %p", __func__, mId,
-              request->input_buffer.get());
+        ALOGD("%s:%d: Reprocessing input buffer %p", __func__, mId, request->input_buffer.get());
     } else {
         ALOGV("%s:%d: Capturing new frame.", __func__, mId);
     }
 
     if (!isValidRequestSettings(request->settings)) {
         ALOGE("%s:%d: Invalid request settings.", __func__, mId);
+        close_fd(temp_request);
         return -EINVAL;
     }
 
     // Pre-process output buffers.
     if (request->output_buffers.size() <= 0) {
-        ALOGE("%s:%d: Invalid number of output buffers: %zu", __func__, mId,
+        ALOGE("%s:%d: Invalid number of output buffers: %d", __func__, mId,
               request->output_buffers.size());
+        close_fd(temp_request);
         return -EINVAL;
     }
     for (auto& output_buffer : request->output_buffers) {
         res = preprocessCaptureBuffer(&output_buffer);
-        if (res)
+        if (res){
+            close_fd(temp_request);
             return -ENODEV;
+        }
     }
 
     // Add the request to tracking.
     if (!mInFlightTracker->Add(request)) {
-        ALOGE("%s:%d: Failed to track request for frame %d.",
-              __func__, mId, request->frame_number);
+        ALOGE("%s:%d: Failed to track request for frame %d.", __func__, mId, request->frame_number);
+        close_fd(temp_request);
         return -ENODEV;
     }
 
@@ -443,7 +448,7 @@ void Camera::completeRequest(std::shared_ptr<CaptureRequest> request, int err)
 
 int Camera::flush()
 {
-    ALOGV("%s:%d: Flushing.", __func__, mId);
+    ALOGE("%s:%d: Flushing.", __func__, mId);
     // TODO(b/32917568): Synchronization. Behave "appropriately"
     // (i.e. according to camera3.h) if process_capture_request()
     // is called concurrently with this (in either order).
@@ -459,7 +464,7 @@ int Camera::flush()
         completeRequestWithError(request);
     }
 
-    ALOGV("%s:%d: Flushed %zu requests.", __func__, mId, requests.size());
+    ALOGE("%s:%d: Flushed %u requests.", __func__, mId, requests.size());
 
     // Call down into the device flushing.
     return flushBuffers();
@@ -505,6 +510,7 @@ void Camera::notifyShutter(uint32_t frame_number, uint64_t timestamp)
 
 void Camera::completeRequestWithError(std::shared_ptr<CaptureRequest> request)
 {
+    ALOGE("%s()", __func__);
     // Send an error notification.
     camera3_notify_msg_t message;
     memset(&message, 0, sizeof(message));
@@ -540,7 +546,8 @@ void Camera::sendResult(std::shared_ptr<CaptureRequest> request) {
 
 void Camera::dump(int fd)
 {
-    ALOGV("%s:%d: Dumping to fd %d", __func__, mId, fd);
+    ALOGE("%s()", __func__);
+    ALOGE("%s:%d: Dumping to fd %d", __func__, mId, fd);
     ATRACE_CALL();
     android::Mutex::Autolock dl(mDeviceLock);
 
@@ -551,6 +558,7 @@ void Camera::dump(int fd)
 
 const char* Camera::templateToString(int type)
 {
+    ALOGE("%s()", __func__);
     switch (type) {
     case CAMERA3_TEMPLATE_PREVIEW:
         return "CAMERA3_TEMPLATE_PREVIEW";

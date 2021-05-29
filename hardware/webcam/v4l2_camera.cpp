@@ -15,7 +15,7 @@
  */
 
 //#define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-V4L2Camera"
+#define LOG_TAG "ZEBRA-WCAM-VCamera"
 
 #include "v4l2_camera.h"
 
@@ -39,7 +39,7 @@ namespace v4l2_camera_hal {
 
 V4L2Camera* V4L2Camera::NewV4L2Camera(int id, const std::string path) {
   HAL_LOG_ENTER();
-
+  HAL_LOGE("%s()",__func__);
   std::shared_ptr<V4L2Wrapper> v4l2_wrapper(V4L2Wrapper::NewV4L2Wrapper(path));
   if (!v4l2_wrapper) {
     HAL_LOGE("Failed to initialize V4L2 wrapper.");
@@ -69,6 +69,7 @@ V4L2Camera::V4L2Camera(int id,
       max_input_streams_(0),
       max_output_streams_({{0, 0, 0}}) {
   HAL_LOG_ENTER();
+  HAL_LOGE("%s()",__func__);
 }
 
 V4L2Camera::~V4L2Camera() {
@@ -77,7 +78,7 @@ V4L2Camera::~V4L2Camera() {
 
 int V4L2Camera::connect() {
   HAL_LOG_ENTER();
-
+  HAL_LOGE("%s()",__func__);
   if (connection_) {
     HAL_LOGE("Already connected. Please disconnect and try again.");
     return -EIO;
@@ -117,7 +118,6 @@ int V4L2Camera::flushBuffers() {
 
 int V4L2Camera::initStaticInfo(android::CameraMetadata* out) {
   HAL_LOG_ENTER();
-
   int res = metadata_->FillStaticMetadata(out);
   if (res) {
     HAL_LOGE("Failed to get static metadata.");
@@ -210,15 +210,14 @@ V4L2Camera::dequeueRequest() {
 bool V4L2Camera::enqueueRequestBuffers() {
   // Get a request from the queue (blocks this thread until one is available).
   struct timespec t = {.tv_sec = 0, .tv_nsec = 0};
-    clock_gettime(CLOCK_MONOTONIC, &t);
-    int64_t current_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
-    int sleep_time = (int)(1000000/30 - ((int)((current_time-last_time)&0x00000000FFFFFFFF)));
-    if(sleep_time > 0 ){
-       usleep(sleep_time);
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  int64_t current_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
+  int sleep_time = (int)(1000000/30 - ((int)((current_time-last_time)&0x00000000FFFFFFFF)));
+  //HAL_LOGE("usleep current_time=%lld, last_time=%lld, sleep_time=%d",current_time,last_time,sleep_time);
+  if(sleep_time > 0 ){
+     usleep(sleep_time);
   }
-  std::shared_ptr<default_camera_hal::CaptureRequest> request =
-      dequeueRequest();
-
+  std::shared_ptr<default_camera_hal::CaptureRequest> request =  dequeueRequest();
   // Assume request validated before being added to the queue
   // (For now, always exactly 1 output buffer, no inputs).
 
@@ -261,7 +260,6 @@ bool V4L2Camera::enqueueRequestBuffers() {
     last_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
     return true;
   }
-
   // Make sure the stream is on (no effect if already on).
   res = device_->StreamOn();
   if (res) {
@@ -273,7 +271,6 @@ bool V4L2Camera::enqueueRequestBuffers() {
     last_time = (t.tv_sec * 1000000000LL + t.tv_nsec) / 1000;
     return true;
   }
-
   std::unique_lock<std::mutex> lock(in_flight_lock_);
   in_flight_buffer_count_++;
   buffers_in_flight_.notify_one();
@@ -315,7 +312,7 @@ bool V4L2Camera::dequeueRequestBuffers() {
 bool V4L2Camera::validateDataspacesAndRotations(
     const camera3_stream_configuration_t* stream_config) {
   HAL_LOG_ENTER();
-
+  HAL_LOGE("%s()",__func__);
   for (uint32_t i = 0; i < stream_config->num_streams; ++i) {
     if (stream_config->streams[i]->rotation != CAMERA3_STREAM_ROTATION_0) {
       HAL_LOGV("Rotation %d for stream %d not supported",

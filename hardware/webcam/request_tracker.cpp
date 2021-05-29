@@ -15,7 +15,7 @@
  */
 
 // #define LOG_NDEBUG 0
-#define LOG_TAG "WEBCAM-RequestTracker"
+#define LOG_TAG "ZEBRA-WCAM-RequestTracker"
 
 #include "request_tracker.h"
 
