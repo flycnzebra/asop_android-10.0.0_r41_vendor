@@ -857,7 +857,3 @@ on property:ro.debuggable=1
 service flash_recovery /system/bin/install-recovery.sh
     class main
     oneshot
-
-service ratd /system/bin/ratd
-    class main
-    socket socket_ratd stream 0777 system system

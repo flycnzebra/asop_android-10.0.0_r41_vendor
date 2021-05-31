@@ -357,20 +357,24 @@ OEM_THUMBPRINT_PROPERTIES := $(filter $(KNOWN_OEM_THUMBPRINT_PROPERTIES),\
     $(PRODUCT_OEM_PROPERTIES))
 
 # Display parameters shown under Settings -> About Phone
-ifeq ($(TARGET_BUILD_VARIANT),user)
-  # User builds should show:
-  # release build number or branch.buld_number non-release builds
+#modify by tangshiyuan set ro.build.display.id
+ifeq ($(BUILD_DISPLAY_ID),)
+  ifeq ($(TARGET_BUILD_VARIANT),user)
+    # User builds should show:
+    # release build number or branch.buld_number non-release builds
 
-  # Dev. branches should have DISPLAY_BUILD_NUMBER set
-  ifeq (true,$(DISPLAY_BUILD_NUMBER))
-    BUILD_DISPLAY_ID := $(BUILD_ID).$(BUILD_NUMBER_FROM_FILE) $(BUILD_KEYS)
+    # Dev. branches should have DISPLAY_BUILD_NUMBER set
+    ifeq (true,$(DISPLAY_BUILD_NUMBER))
+      BUILD_DISPLAY_ID := $(BUILD_ID).$(BUILD_NUMBER_FROM_FILE) $(BUILD_KEYS)
+    else
+      BUILD_DISPLAY_ID := $(BUILD_ID) $(BUILD_KEYS)
+    endif
   else
-    BUILD_DISPLAY_ID := $(BUILD_ID) $(BUILD_KEYS)
+    # Non-user builds should show detailed build information
+    BUILD_DISPLAY_ID := $(build_desc)
   endif
-else
-  # Non-user builds should show detailed build information
-  BUILD_DISPLAY_ID := $(build_desc)
 endif
+#modify end
 
 # Accepts a whitespace separated list of product locales such as
 # (en_US en_AU en_GB...) and returns the first locale in the list with
