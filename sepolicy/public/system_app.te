@@ -1,3 +1,0 @@
-#add by tangshiyuan for fota
-allow system_app cache_file:dir getattr;
-allow system_app cache_file:file { open read getattr };

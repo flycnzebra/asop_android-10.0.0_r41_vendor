@@ -1,0 +1,11 @@
+###
+### Apps that run with the system UID, e.g. com.android.system.ui,
+### com.android.settings.  These are not as privileged as the system
+### server.
+###
+
+type system_app, domain;
+
+#add by tangshiyuan for fota
+allow system_app cache_file:dir getattr;
+allow system_app cache_file:file { open read getattr };

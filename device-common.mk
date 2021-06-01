@@ -27,15 +27,12 @@ persist.radio.calls.on.ims=1
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.radio.mcwill.pid=81.98.97.25
 
-#copy file
-#PRODUCT_COPY_FILES +=
-
 #add install app
 PRODUCT_PACKAGES +=mbn_sw.txt
 PRODUCT_PACKAGES += fota
 PRODUCT_PACKAGES += webcam
 
 ##c10 m-stream
-#PRODUCT_PACKAGES += ratd
-#PRODUCT_PACKAGES += mpc
+PRODUCT_PACKAGES += ratd
+PRODUCT_PACKAGES += mpc
 #PRODUCT_PACKAGES += lib-mpd

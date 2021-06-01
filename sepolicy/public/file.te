@@ -1,1 +1,0 @@
-type ratd_socket, file_type, coredomain_socket;

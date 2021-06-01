@@ -33,5 +33,6 @@ cp -v $SRC/crosshatch/device-crosshatch.mk $OBJ/device/google/crosshatch/
 #create release-key
 cp -rvf $SRC/crosshatch/build/target/product/security/* $OBJ/build/target/product/security/
 cp -rvf $SRC/crosshatch/build/core/* $OBJ/build/core/
+#All Selinux
 cp -rvf $SRC/crosshatch/system/sepolicy/* $OBJ/system/sepolicy/
 echo "################<install zebra project finish>################"
