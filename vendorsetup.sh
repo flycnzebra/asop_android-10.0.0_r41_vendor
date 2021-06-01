@@ -8,7 +8,22 @@ OBJ=.
 #TODIR=vendor/zebra 
 
 #copy rbuild 
-cp -rvf $SRC/rbuild.sh $OBJ/
+cp -v $SRC/rbuild.sh $OBJ/
+
+#ZebrasSystemServer
+cp -v $SRC/crosshatch/frameworks/base/Android._ $OBJ/frameworks/base/Android.bp
+cp -v $SRC/crosshatch/frameworks/base/core/java/android/app/SystemServiceRegistry.java $OBJ/frameworks/base/core/java/android/app/SystemServiceRegistry.java
+cp -v $SRC/crosshatch/frameworks/base/core/java/android/content/Context.java $OBJ/frameworks/base/core/java/android/content/Context.java
+cp -v $SRC/crosshatch/frameworks/base/services/java/com/android/server/SystemServer.java $OBJ/frameworks/base/services/java/com/android/server/SystemServer.java
+mkdir -p $OBJ/frameworks/base/core/java/android/zebra
+cp -v $SRC/crosshatch/frameworks/base/core/java/android/zebra/FlyLog.java $OBJ/frameworks/base/core/java/android/zebra/FlyLog.java
+cp -v $SRC/crosshatch/frameworks/base/core/java/android/zebra/IZebraService.aidl $OBJ/frameworks/base/core/java/android/zebra/IZebraService.aidl
+cp -v $SRC/crosshatch/frameworks/base/core/java/android/zebra/ZebraListener.aidl $OBJ/frameworks/base/core/java/android/zebra/ZebraListener.aidl
+cp -v $SRC/crosshatch/frameworks/base/core/java/android/zebra/ZebraManager.java $OBJ/frameworks/base/core/java/android/zebra/ZebraManager.java
+mkdir -p $OBJ/frameworks/base/services/core/java/com/android/server/zebra
+cp -v $SRC/crosshatch/frameworks/base/services/core/java/com/android/server/zebra/ZebraService.java $OBJ/frameworks/base/services/core/java/com/android/server/zebra/ZebraService.java
+#make api-stubs-docs-update-current-api -j24
+cp -v $SRC/crosshatch/frameworks/base/api/current.txt $OBJ/frameworks/base/api/current.txt
 
 #copy crosshatch mk filse
 cp -v $SRC/crosshatch/AndroidProducts._ $OBJ/device/google/crosshatch/AndroidProducts.mk
