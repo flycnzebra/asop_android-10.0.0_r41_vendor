@@ -89,6 +89,9 @@ import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import android.zebra.ZebraManager;
+import android.zebra.FlyLog;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A GNSS implementation of LocationProvider used by LocationManager.
@@ -479,6 +482,112 @@ public class GnssLocationProvider extends AbstractLocationProvider implements
                 // thread.
                 mHandler.sendEmptyMessage(UPDATE_LOW_POWER_MODE);
             };
+
+    /** Added by tangshiyuan for gps start 20210305 **/
+    private ZebraManager mZebraManager;
+    private AtomicBoolean isReport = new AtomicBoolean(false);
+    private Runnable upLocationTask = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                if (mZebraManager == null) {
+                    mZebraManager = (ZebraManager) mContext.getSystemService("zebra");
+                }
+                Bundle bundle = mZebraManager.getGpsData();
+                Location location = bundle.getParcelable(ZebraManager.GPS_LOCATION);
+                if (location != null) {
+                    location.setProvider("gps");
+                    if(location.getAccuracy()<=0.0F){
+                        location.setAccuracy(10.0F);
+                    }
+                    location.setTime(SystemClock.currentThreadTimeMillis());
+                    location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
+                    reportLocation(true, location);
+                    handleReportSvStatus(null);
+                    //FlyLog.d("reportLocation:" + location);
+                }
+            } catch (Exception e) {
+                FlyLog.e(e.toString());
+            }
+            if (isReport.get()) {
+                mHandler.postDelayed(upLocationTask, 1000);
+            }
+        }
+    };
+    private static SvStatusInfo mBaseSvInfo = new SvStatusInfo();
+    private static SvStatusInfo mFlySvInfo = new SvStatusInfo();
+    private static int MAX_SVS = 64;
+    static {
+        mBaseSvInfo.mSvCount = 64;
+        mBaseSvInfo.mSvidWithFlags = new int[MAX_SVS];
+        mBaseSvInfo.mCn0s = new float[MAX_SVS];
+        mBaseSvInfo.mSvElevations = new float[MAX_SVS];
+        mBaseSvInfo.mSvAzimuths = new float[MAX_SVS];
+        mBaseSvInfo.mSvCarrierFreqs = new float[MAX_SVS];
+        mFlySvInfo.mSvCount = 64;
+        mFlySvInfo.mSvidWithFlags = new int[MAX_SVS];
+        mFlySvInfo.mCn0s = new float[MAX_SVS];
+        mFlySvInfo.mSvElevations = new float[MAX_SVS];
+        mFlySvInfo.mSvAzimuths = new float[MAX_SVS];
+        mFlySvInfo.mSvCarrierFreqs = new float[MAX_SVS];
+        for (int i = 0; i < 16; i++) {
+            if (i % 4 == 1) {
+                mBaseSvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000f + (i << 8));
+            } else {
+                mBaseSvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000b + (i << 8));
+            }
+            mBaseSvInfo.mSvAzimuths[i] = (float) Math.random() * 45.0F + (i % 8) * 45.0F;
+            mBaseSvInfo.mSvElevations[i] = (float) Math.random() * 80.0F;
+            mBaseSvInfo.mCn0s[i] = (float)Math.random() * 10f;
+            mBaseSvInfo.mSvCarrierFreqs[i] = 1575.42f;
+        }
+
+        for (int i = 16; i < 26; i++) {
+            if (i % 2 == 1) {
+                mBaseSvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000f + (i << 8));
+            } else {
+                mBaseSvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000b + (i << 8));
+            }
+            mBaseSvInfo.mSvAzimuths[i] = (float) Math.random() * 36.0F + (i % 10) * 36.0F;
+            mBaseSvInfo.mSvElevations[i] = (float) Math.random() * 80.0F;
+            mBaseSvInfo.mCn0s[i] = (float)Math.random() * 10f;
+            mBaseSvInfo.mSvCarrierFreqs[i] = 1600.97f;
+        }
+
+        for (int i = 26; i < 30; i++) {
+            mBaseSvInfo.mSvidWithFlags[i] = (int) ((4 << 4) + 0x0009 + (i << 8));
+            mBaseSvInfo.mSvAzimuths[i] = (float) Math.random() * 90.0F + (i % 4) * 90.0F;
+            mBaseSvInfo.mSvElevations[i] = (float) Math.random() * 80.0F;
+            mBaseSvInfo.mCn0s[i] = (float)Math.random() * 10f;
+            mBaseSvInfo.mSvCarrierFreqs[i] = 1575.42f;
+        }
+
+        for (int i = 30; i < 58; i++) {
+            if (i % 4 == 1) {
+                mBaseSvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000f + (i << 8));
+            } else {
+                mBaseSvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000b + (i << 8));
+            }
+            mBaseSvInfo.mSvAzimuths[i] = (float) Math.random() * 45.0F + (i % 8) * 45.0F;
+            mBaseSvInfo.mSvElevations[i] = (float) Math.random() * 80.0F;
+            mBaseSvInfo.mCn0s[i] = (float)Math.random() * 10f;
+            mBaseSvInfo.mSvCarrierFreqs[i] = 1561.10f;
+        }
+
+        for (int i = 58; i < 64; i++) {
+            mBaseSvInfo.mSvidWithFlags[i] = (int) ((6 << 4) + 0x0009 + (i << 8));
+            mBaseSvInfo.mSvAzimuths[i] = (float) Math.random() * 60.0F + (i % 6) * 60.0F;
+            mBaseSvInfo.mSvElevations[i] = (float) Math.random() * 80.0F;
+            mBaseSvInfo.mCn0s[i] = (float) Math.random() * 10f;
+            mBaseSvInfo.mSvCarrierFreqs[i] = 1575.42f;
+        }
+        System.arraycopy(mBaseSvInfo.mSvidWithFlags,0,mFlySvInfo.mSvidWithFlags,0,64);
+        System.arraycopy(mBaseSvInfo.mCn0s,0,mFlySvInfo.mCn0s,0,64);
+        System.arraycopy(mBaseSvInfo.mSvElevations,0,mFlySvInfo.mSvElevations,0,64);
+        System.arraycopy(mBaseSvInfo.mSvAzimuths,0,mFlySvInfo.mSvAzimuths,0,64);
+        System.arraycopy(mBaseSvInfo.mSvCarrierFreqs,0,mFlySvInfo.mSvCarrierFreqs,0,64);
+    }
+    /** Added by tangshiyuan for gps end 20210305 **/
 
     private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -1064,6 +1173,19 @@ public class GnssLocationProvider extends AbstractLocationProvider implements
     @Override
     public void setRequest(ProviderRequest request, WorkSource source) {
         sendMessage(SET_REQUEST, 0, new GpsRequest(request, source));
+        /** Added by tangshiyuan for gps start 20210305 **/
+        try {
+            FlyLog.e("Gps isReport.get() = "+isReport.get());
+            mHandler.removeCallbacks(upLocationTask);
+            isReport.set(request.reportLocation);
+            if (isReport.get()) {
+                mHandler.post(upLocationTask);
+            }
+        } catch (Exception e) {
+            FlyLog.e(e.toString());
+        }
+        /** Added by tangshiyuan for gps end 20210305 **/
+
     }
 
     private void handleSetRequest(ProviderRequest request, WorkSource source) {
@@ -1483,6 +1605,110 @@ public class GnssLocationProvider extends AbstractLocationProvider implements
     }
 
     private void handleReportSvStatus(SvStatusInfo info) {
+        /** modify by tangshiyuan for gps start 20210305 **/
+        long time = SystemClock.uptimeMillis();
+        float ttA = (((time/1000)%72000000)/72000F) * 360F;
+        float ttE = (((time/1000)%72000000)/72000F) * 80F;
+        for (int i = 0; i < 16; i++) {
+            int mm = (int) ((time / 3600000) % 8);
+            if (Math.abs(i % 8 - mm) > 2) {
+                if (Math.random()* 4 < 3) {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000f + (i << 8));
+                } else {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000b + (i << 8));
+                }
+            } else {
+                mFlySvInfo.mSvidWithFlags[i] = 0;
+            }
+            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + ttA)%360F;
+            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ ttE)%80F;
+            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+            mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
+        }
+
+        for (int i = 16; i < 30; i++) {
+            int mm = (int) ((time / 3600000) % 7);
+            if (Math.abs(i % 7 - mm) > 2) {
+                if (Math.random()* 4 < 3) {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000f + (i << 8));
+                } else {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000b + (i << 8));
+                }
+            } else {
+                mFlySvInfo.mSvidWithFlags[i] = 0;
+            }
+            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + ttA)%360F;;
+            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ ttE)%80F;
+            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+            mFlySvInfo.mSvCarrierFreqs[i] = 1600.97f;
+        }
+
+        for (int i = 30; i < 34; i++) {
+            int mm = (int) ((time / 3600000) % 4);
+            if (Math.abs(i % 4 - mm) > 2) {
+                if (Math.random()* 8 < 7) {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((4 << 4) + 0x000f + (i << 8));
+                } else {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((4 << 4) + 0x000b + (i << 8));
+                }
+            } else {
+                mFlySvInfo.mSvidWithFlags[i] = 0;
+            }
+            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F-ttA))%360F;;
+            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ (80F-ttE))%80F;
+            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+            mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
+        }
+
+        for (int i = 34; i < 58; i++) {
+            int mm = (int) ((time / 3600000) % 12);
+            if (Math.abs(i % 12 - mm) > 2) {
+                if (Math.random()* 4 < 3) {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000f + (i << 8));
+                } else {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000b + (i << 8));
+                }
+            } else {
+                mFlySvInfo.mSvidWithFlags[i] = 0;
+            }
+            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F-ttA))%360F;;
+            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ (80F-ttE))%80F;
+            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+            mFlySvInfo.mSvCarrierFreqs[i] = 1561.10f;
+        }
+        for (int i = 58; i < 64; i++) {
+            int mm = (int) ((time / 3600000) % 6);
+            if (Math.abs(i % 6 - mm) > 2) {
+                if (Math.random()* 8 < 7) {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((6 << 4) + 0x000f + (i << 8));
+                } else {
+                    mFlySvInfo.mSvidWithFlags[i] = (int) ((6 << 4) + 0x000b + (i << 8));
+                }
+            } else {
+                mFlySvInfo.mSvidWithFlags[i] = 0;
+            }
+            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F-ttA))%360F;;
+            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ (80F-ttE))%80F;
+            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+            mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
+        }
+        mFlySvInfo.mSvCount = 0;
+        for (int i = 0; i < MAX_SVS; i++) {
+            if (mFlySvInfo.mSvidWithFlags[i] != 0) {
+                mFlySvInfo.mSvidWithFlags[mFlySvInfo.mSvCount] = mFlySvInfo.mSvidWithFlags[i];
+                mFlySvInfo.mSvCount++;
+            }
+        }
+        for (int i = mFlySvInfo.mSvCount; i < MAX_SVS; i++) {
+            mFlySvInfo.mSvidWithFlags[i] = 0;
+            mFlySvInfo.mSvAzimuths[i] = 0;
+            mFlySvInfo.mSvElevations[i] = 0;
+            mFlySvInfo.mCn0s[i] = 0;
+            mFlySvInfo.mSvCarrierFreqs[i] = 0;
+        }
+        info = mFlySvInfo;
+        /** modify by tangshiyuan for gps end 20210305 **/
+
         mGnssStatusListenerHelper.onSvStatusChanged(
                 info.mSvCount,
                 info.mSvidWithFlags,

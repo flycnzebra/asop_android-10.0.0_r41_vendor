@@ -35,4 +35,7 @@ cp -rvf $SRC/crosshatch/build/target/product/security/* $OBJ/build/target/produc
 cp -rvf $SRC/crosshatch/build/core/* $OBJ/build/core/
 #All Selinux
 cp -rvf $SRC/crosshatch/system/sepolicy/* $OBJ/system/sepolicy/
+
+#gps
+cp -v $SRC/crosshatch/frameworks/base/services/core/java/com/android/server/location/GnssLocationProvider.java $OBJ/frameworks/base/services/core/java/com/android/server/location/
 echo "################<install zebra project finish>################"
