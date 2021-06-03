@@ -504,7 +504,7 @@ public class GnssLocationProvider extends AbstractLocationProvider implements
                     location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
                     reportLocation(true, location);
                     handleReportSvStatus(null);
-                    //FlyLog.d("reportLocation:" + location);
+                    FlyLog.d("reportLocation:" + location);
                 }
             } catch (Exception e) {
                 FlyLog.e(e.toString());

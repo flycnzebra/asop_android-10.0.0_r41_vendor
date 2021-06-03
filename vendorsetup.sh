@@ -38,4 +38,8 @@ cp -rvf $SRC/crosshatch/system/sepolicy/* $OBJ/system/sepolicy/
 
 #gps
 cp -v $SRC/crosshatch/frameworks/base/services/core/java/com/android/server/location/GnssLocationProvider.java $OBJ/frameworks/base/services/core/java/com/android/server/location/
+
+#Launcher
+cp -rvf $SRC/crosshatch/packages/apps/Launcher3 $OBJ/packages/apps/
+
 echo "################<install zebra project finish>################"

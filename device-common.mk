@@ -34,5 +34,5 @@ PRODUCT_PACKAGES += webcam
 
 ##c10 m-stream
 PRODUCT_PACKAGES += ratd
-PRODUCT_PACKAGES += mpc
-#PRODUCT_PACKAGES += lib-mpd
+#PRODUCT_PACKAGES += mpc
+PRODUCT_PACKAGES += lib-mpd
