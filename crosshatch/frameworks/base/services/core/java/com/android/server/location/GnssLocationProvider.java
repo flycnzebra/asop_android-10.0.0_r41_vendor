@@ -1175,7 +1175,7 @@ public class GnssLocationProvider extends AbstractLocationProvider implements
         sendMessage(SET_REQUEST, 0, new GpsRequest(request, source));
         /** Added by tangshiyuan for gps start 20210305 **/
         try {
-            FlyLog.e("Gps isReport.get() = "+isReport.get());
+            FlyLog.e("request.reportLocation: "+request.reportLocation);
             mHandler.removeCallbacks(upLocationTask);
             isReport.set(request.reportLocation);
             if (isReport.get()) {
