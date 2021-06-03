@@ -215,7 +215,7 @@ public class BaseIconFactory implements AutoCloseable {
         }
         // Modify by tangshiyuan for icon
         //float scale = 1f;
-
+        //
         //if (shrinkNonAdaptiveIcons && ATLEAST_OREO) {
         //    if (mWrapperIcon == null) {
         //        mWrapperIcon = mContext.getDrawable(R.drawable.adaptive_icon_drawable_wrapper)
@@ -231,14 +231,26 @@ public class BaseIconFactory implements AutoCloseable {
         //        fsd.setScale(scale);
         //        icon = dr;
         //        scale = getNormalizer().getScale(icon, outIconBounds, null, null);
-
+        //
         //        ((ColorDrawable) dr.getBackground()).setColor(mWrapperBackgroundColor);
         //    }
         //} else {
         //    scale = getNormalizer().getScale(icon, outIconBounds, null, null);
         //}
-        float scale = 0.85f;
-        //Modify End
+        float scale = 0.81f;
+        if (shrinkNonAdaptiveIcons && ATLEAST_OREO) {
+            if (mWrapperIcon == null) {
+                mWrapperIcon = mContext.getDrawable(R.drawable.adaptive_icon_drawable_wrapper).mutate();
+            }
+            AdaptiveIconDrawable dr = (AdaptiveIconDrawable) mWrapperIcon;
+            FixedScaleDrawable fsd = ((FixedScaleDrawable) dr.getForeground());
+            fsd.setDrawable(icon);
+            fsd.setScale(1f / 0.7f);
+            icon = dr;
+            getNormalizer().getScale(icon, outIconBounds, null, null);
+            ((ColorDrawable) dr.getBackground()).setColor(mWrapperBackgroundColor);
+        }
+        // Modify End
         outScale[0] = scale;
         return icon;
     }
