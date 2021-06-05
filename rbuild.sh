@@ -6,7 +6,7 @@ lunch aosp_crosshatch-userdebug
 echo "################<create out dir>################"
 android_dir=$(pwd)
 packagedir=~/version/aosp_crosshatch
-newversion=P3XL.DBUG.`date +%Y%m%d`.0`date +%H`
+newversion=ZEBRA.DBUG.`date +%Y%m%d`.0`date +%H`
 export BUILD_DISPLAY_ID=$newversion
 rm -rvf $packagedir/$newversion
 for file in `ls $packagedir`

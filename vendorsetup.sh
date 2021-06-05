@@ -42,4 +42,7 @@ cp -v $SRC/crosshatch/frameworks/base/services/core/java/com/android/server/loca
 #Launcher
 cp -rvf $SRC/crosshatch/packages/apps/Launcher3 $OBJ/packages/apps/
 
+#不编译Android10的新功能llkd
+mv -v $OBJ/system/core/llkd/Android.bp $OBJ/system/core/llkd/Android._
+mv -v $OBJ/system/core/llkd/tests/Android.bp $OBJ/system/core/llkd/tests/Android._
 echo "################<install zebra project finish>################"

@@ -490,14 +490,12 @@ public class GnssLocationProvider extends AbstractLocationProvider implements
         @Override
         public void run() {
             try {
-                if (mZebraManager == null) {
-                    mZebraManager = (ZebraManager) mContext.getSystemService("zebra");
-                }
-                Bundle bundle = mZebraManager.getGpsData();
-                Location location = bundle.getParcelable(ZebraManager.GPS_LOCATION);
+                mZebraManager = mZebraManager == null ? (ZebraManager) mContext.getSystemService("zebra") : mZebraManager;
+                Bundle bundle = mZebraManager == null ? null : mZebraManager.getGpsData();
+                Location location = bundle == null ? null : bundle.getParcelable(ZebraManager.GPS_LOCATION);
                 if (location != null) {
                     location.setProvider("gps");
-                    if(location.getAccuracy()<=0.0F){
+                    if (location.getAccuracy() <= 0.0F) {
                         location.setAccuracy(10.0F);
                     }
                     location.setTime(SystemClock.currentThreadTimeMillis());
@@ -1606,107 +1604,116 @@ public class GnssLocationProvider extends AbstractLocationProvider implements
 
     private void handleReportSvStatus(SvStatusInfo info) {
         /** modify by tangshiyuan for gps start 20210305 **/
-        long time = SystemClock.uptimeMillis();
-        float ttA = (((time/1000)%72000000)/72000F) * 360F;
-        float ttE = (((time/1000)%72000000)/72000F) * 80F;
-        for (int i = 0; i < 16; i++) {
-            int mm = (int) ((time / 3600000) % 8);
-            if (Math.abs(i % 8 - mm) > 2) {
-                if (Math.random()* 4 < 3) {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000f + (i << 8));
+        mZebraManager = mZebraManager == null ? (ZebraManager) mContext.getSystemService("zebra") : mZebraManager;
+        Bundle bundle = mZebraManager == null ? null : mZebraManager.getGpsData();
+        Location location = bundle == null ? null : bundle.getParcelable(ZebraManager.GPS_LOCATION);
+        if (location != null) {
+            long time = SystemClock.uptimeMillis();
+            float ttA = (((time / 1000) % 72000000) / 72000F) * 360F;
+            float ttE = (((time / 1000) % 72000000) / 72000F) * 80F;
+            for (int i = 0; i < 16; i++) {
+                int mm = (int) ((time / 3600000) % 8);
+                if (Math.abs(i % 8 - mm) > 2) {
+                    if (Math.random() * 4 < 3) {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000f + (i << 8));
+                    } else {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000b + (i << 8));
+                    }
                 } else {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((1 << 4) + 0x000b + (i << 8));
+                    mFlySvInfo.mSvidWithFlags[i] = 0;
                 }
-            } else {
-                mFlySvInfo.mSvidWithFlags[i] = 0;
+                mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + ttA) % 360F;
+                mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i] + ttE) % 80F;
+                mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+                mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
             }
-            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + ttA)%360F;
-            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ ttE)%80F;
-            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
-            mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
-        }
 
-        for (int i = 16; i < 30; i++) {
-            int mm = (int) ((time / 3600000) % 7);
-            if (Math.abs(i % 7 - mm) > 2) {
-                if (Math.random()* 4 < 3) {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000f + (i << 8));
+            for (int i = 16; i < 30; i++) {
+                int mm = (int) ((time / 3600000) % 7);
+                if (Math.abs(i % 7 - mm) > 2) {
+                    if (Math.random() * 4 < 3) {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000f + (i << 8));
+                    } else {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000b + (i << 8));
+                    }
                 } else {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((3 << 4) + 0x000b + (i << 8));
+                    mFlySvInfo.mSvidWithFlags[i] = 0;
                 }
-            } else {
-                mFlySvInfo.mSvidWithFlags[i] = 0;
+                mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + ttA) % 360F;
+                ;
+                mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i] + ttE) % 80F;
+                mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+                mFlySvInfo.mSvCarrierFreqs[i] = 1600.97f;
             }
-            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + ttA)%360F;;
-            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ ttE)%80F;
-            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
-            mFlySvInfo.mSvCarrierFreqs[i] = 1600.97f;
-        }
 
-        for (int i = 30; i < 34; i++) {
-            int mm = (int) ((time / 3600000) % 4);
-            if (Math.abs(i % 4 - mm) > 2) {
-                if (Math.random()* 8 < 7) {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((4 << 4) + 0x000f + (i << 8));
+            for (int i = 30; i < 34; i++) {
+                int mm = (int) ((time / 3600000) % 4);
+                if (Math.abs(i % 4 - mm) > 2) {
+                    if (Math.random() * 8 < 7) {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((4 << 4) + 0x000f + (i << 8));
+                    } else {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((4 << 4) + 0x000b + (i << 8));
+                    }
                 } else {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((4 << 4) + 0x000b + (i << 8));
+                    mFlySvInfo.mSvidWithFlags[i] = 0;
                 }
-            } else {
-                mFlySvInfo.mSvidWithFlags[i] = 0;
+                mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F - ttA)) % 360F;
+                ;
+                mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i] + (80F - ttE)) % 80F;
+                mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+                mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
             }
-            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F-ttA))%360F;;
-            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ (80F-ttE))%80F;
-            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
-            mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
-        }
 
-        for (int i = 34; i < 58; i++) {
-            int mm = (int) ((time / 3600000) % 12);
-            if (Math.abs(i % 12 - mm) > 2) {
-                if (Math.random()* 4 < 3) {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000f + (i << 8));
+            for (int i = 34; i < 58; i++) {
+                int mm = (int) ((time / 3600000) % 12);
+                if (Math.abs(i % 12 - mm) > 2) {
+                    if (Math.random() * 4 < 3) {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000f + (i << 8));
+                    } else {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000b + (i << 8));
+                    }
                 } else {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((5 << 4) + 0x000b + (i << 8));
+                    mFlySvInfo.mSvidWithFlags[i] = 0;
                 }
-            } else {
-                mFlySvInfo.mSvidWithFlags[i] = 0;
+                mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F - ttA)) % 360F;
+                ;
+                mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i] + (80F - ttE)) % 80F;
+                mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+                mFlySvInfo.mSvCarrierFreqs[i] = 1561.10f;
             }
-            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F-ttA))%360F;;
-            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ (80F-ttE))%80F;
-            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
-            mFlySvInfo.mSvCarrierFreqs[i] = 1561.10f;
-        }
-        for (int i = 58; i < 64; i++) {
-            int mm = (int) ((time / 3600000) % 6);
-            if (Math.abs(i % 6 - mm) > 2) {
-                if (Math.random()* 8 < 7) {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((6 << 4) + 0x000f + (i << 8));
+            for (int i = 58; i < 64; i++) {
+                int mm = (int) ((time / 3600000) % 6);
+                if (Math.abs(i % 6 - mm) > 2) {
+                    if (Math.random() * 8 < 7) {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((6 << 4) + 0x000f + (i << 8));
+                    } else {
+                        mFlySvInfo.mSvidWithFlags[i] = (int) ((6 << 4) + 0x000b + (i << 8));
+                    }
                 } else {
-                    mFlySvInfo.mSvidWithFlags[i] = (int) ((6 << 4) + 0x000b + (i << 8));
+                    mFlySvInfo.mSvidWithFlags[i] = 0;
                 }
-            } else {
+                mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F - ttA)) % 360F;
+                ;
+                mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i] + (80F - ttE)) % 80F;
+                mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
+                mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
+            }
+            mFlySvInfo.mSvCount = 0;
+            for (int i = 0; i < MAX_SVS; i++) {
+                if (mFlySvInfo.mSvidWithFlags[i] != 0) {
+                    mFlySvInfo.mSvidWithFlags[mFlySvInfo.mSvCount] = mFlySvInfo.mSvidWithFlags[i];
+                    mFlySvInfo.mSvCount++;
+                }
+            }
+            for (int i = mFlySvInfo.mSvCount; i < MAX_SVS; i++) {
                 mFlySvInfo.mSvidWithFlags[i] = 0;
+                mFlySvInfo.mSvAzimuths[i] = 0;
+                mFlySvInfo.mSvElevations[i] = 0;
+                mFlySvInfo.mCn0s[i] = 0;
+                mFlySvInfo.mSvCarrierFreqs[i] = 0;
             }
-            mFlySvInfo.mSvAzimuths[i] = (mBaseSvInfo.mSvAzimuths[i] + (360F-ttA))%360F;;
-            mFlySvInfo.mSvElevations[i] = (mBaseSvInfo.mSvElevations[i]+ (80F-ttE))%80F;
-            mFlySvInfo.mCn0s[i] = mBaseSvInfo.mCn0s[i] + ((float) Math.random() * 0.02F - 0.01F);
-            mFlySvInfo.mSvCarrierFreqs[i] = 1575.42f;
+            info = mFlySvInfo;
         }
-        mFlySvInfo.mSvCount = 0;
-        for (int i = 0; i < MAX_SVS; i++) {
-            if (mFlySvInfo.mSvidWithFlags[i] != 0) {
-                mFlySvInfo.mSvidWithFlags[mFlySvInfo.mSvCount] = mFlySvInfo.mSvidWithFlags[i];
-                mFlySvInfo.mSvCount++;
-            }
-        }
-        for (int i = mFlySvInfo.mSvCount; i < MAX_SVS; i++) {
-            mFlySvInfo.mSvidWithFlags[i] = 0;
-            mFlySvInfo.mSvAzimuths[i] = 0;
-            mFlySvInfo.mSvElevations[i] = 0;
-            mFlySvInfo.mCn0s[i] = 0;
-            mFlySvInfo.mSvCarrierFreqs[i] = 0;
-        }
-        info = mFlySvInfo;
         /** modify by tangshiyuan for gps end 20210305 **/
 
         mGnssStatusListenerHelper.onSvStatusChanged(
