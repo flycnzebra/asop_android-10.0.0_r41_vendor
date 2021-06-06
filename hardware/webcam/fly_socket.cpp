@@ -540,7 +540,7 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
     readHeight = height;
     switch (format) {
         case HAL_PIXEL_FORMAT_YCbCr_420_888:
-            //memcpy(frame, yuvFrame, width * height * 3 / 2);
+            memcpy(frame, yuvFrame, width * height * 3 / 2);
             if(is_debug==1){
                 test_count1++;
                 if(crtTime/1000000>last_time1/1000000){
@@ -551,7 +551,7 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
             }
             break;
         case HAL_PIXEL_FORMAT_BLOB:
-            //memcpy(frame, yuvFrame, width * height * 3 / 2);
+            memcpy(frame, yuvFrame, width * height * 3 / 2);
             if(is_debug==1){
                 test_count2++;
                 if(crtTime/1000000>last_time2/1000000){
@@ -564,7 +564,7 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
         case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
         case HAL_PIXEL_FORMAT_RGBA_8888:
         default:
-            //memcpy(frame, rgbFrame, width * height * 4);
+            memcpy(frame, rgbFrame, width * height * 4);
             if(is_debug==1){
                 test_count3++;
                 if(crtTime/1000000>last_time3/1000000){
@@ -579,17 +579,3 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
     //ALOGE("read CameraID=%d, format=%d,width=%d,height=%d. End", mCameraID, format, width, height);
     return 0;
 }
-
-//void FlySocket::memcpy(void *dst, void *src, int sz) {
-//    if (sz & 63)
-//            sz = (sz & -64) + 64;
-//    asm volatile (
-//    "NEONCopyPLD: \n"
-//            " VLDM %[src]!,{d0-d7} \n"
-//            " VSTM %[dst]!,{d0-d7} \n"
-//            " SUBS %[sz],%[sz],#0x40 \n"
-//            " BGT NEONCopyPLD \n"
-//    : [dst]"+r"(dst), [src]"+r"(src), [sz]"+r"(sz) : : "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "cc", "memory");
-//}
-
-

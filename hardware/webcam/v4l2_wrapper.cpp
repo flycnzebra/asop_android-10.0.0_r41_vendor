@@ -663,6 +663,7 @@ int V4L2Wrapper::EnqueueRequest(
   memset(&device_buffer, 0, sizeof(device_buffer));
   device_buffer.type = format_->type();
   device_buffer.index = index;
+  device_buffer.length = 1920*1080*4;
 
   // Use QUERYBUF to ensure our buffer/device is in good shape,
   // and fill out remaining fields.
@@ -675,31 +676,39 @@ int V4L2Wrapper::EnqueueRequest(
   }
   // Setup our request context and fill in the user pointer field.
   RequestContext* request_context;
-  void* data;
+  //void* data;
   {
     std::lock_guard<std::mutex> guard(buffer_queue_lock_);
     request_context = &buffers_[index];
-    request_context->camera_buffer->SetDataSize(device_buffer.length);
-    request_context->camera_buffer->Reset();
-    request_context->camera_buffer->SetFourcc(format_->v4l2_pixel_format());
-    request_context->camera_buffer->SetWidth(format_->width());
-    request_context->camera_buffer->SetHeight(format_->height());
     request_context->request = request;
-    data = request_context->camera_buffer->GetData();
+    const camera3_stream_buffer_t* stream_buffer = &request->output_buffers[0];
+    const hw_module_t* module = nullptr;
+    int ret = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module);
+    if (ret || !module) {
+      HAL_LOGE("Failed to get gralloc module.");
+      return -ENODEV;
+    }
+    const gralloc_module_t* gralloc_module_ = reinterpret_cast<const gralloc_module_t*>(module);
+    buffer_handle_t buffer = *stream_buffer->buffer;
+    camera3_stream_t* stream = stream_buffer->stream;
+    lockformat = stream->format;
+    lockwidth = stream->width;
+    lockheight = stream->height;
+    void* vddr;
+    ret = gralloc_module_->lock(gralloc_module_, buffer, stream->usage, 0, 0,  lockwidth, lockheight, &vddr);
+    if (ret || !module) {
+      HAL_LOGE("lock Failed.");
+    }
+    device_buffer.m.userptr = reinterpret_cast<unsigned long>(vddr);
+    lockdata = reinterpret_cast<void*>(device_buffer.m.userptr);
+    FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
+	ret = gralloc_module_->unlock(gralloc_module_, buffer);
+    if (ret) {
+	  HAL_LOGE("Failed to unlock buffer at %p", buffer);
+	  return -ENODEV;
+    }
   }
-  device_buffer.m.userptr = reinterpret_cast<unsigned long>(data);
 
-  // Pass the buffer to the camera.
-  //if (IoctlLocked(VIDIOC_QBUF, &device_buffer) < 0) {
-  //  HAL_LOGE("QBUF fails: %s", strerror(errno));
-  //  return -ENODEV;
-  //}
-  lockformat = format_->v4l2_pixel_format();
-  lockwidth = format_->width();
-  lockheight = format_->height();
-  lockdata = reinterpret_cast<void*>(device_buffer.m.userptr);
-  FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
-  // Mark the buffer as in flight.
   std::lock_guard<std::mutex> guard(buffer_queue_lock_);
   request_context->active = true;
   return 0;
@@ -718,58 +727,11 @@ int V4L2Wrapper::DequeueRequest(std::shared_ptr<CaptureRequest>* request) {
   memset(&buffer, 0, sizeof(buffer));
   buffer.type = format_->type();
   buffer.memory = V4L2_MEMORY_USERPTR;
-  int res = IoctlLocked(VIDIOC_DQBUF, &buffer);
-  if (res) {
-    if (errno == EAGAIN) {
-      // Expected failure.
-      return -EAGAIN;
-    } else {
-      // Unexpected failure.
-      HAL_LOGE("DQBUF fails: %s", strerror(errno));
-      return -ENODEV;
-    }
-  }
-
   std::lock_guard<std::mutex> guard(buffer_queue_lock_);
   RequestContext* request_context = &buffers_[buffer.index];
-
-  //Lock the camera stream buffer for painting.
-  //const camera3_stream_buffer_t* stream_buffer = &request_context->request->output_buffers[0];
-  //uint32_t fourcc = StreamFormat::HalToV4L2PixelFormat(stream_buffer->stream->format);
-
   if (request) {
     *request = request_context->request;
   }
-
-  // Note that the device buffer length is passed to the output frame. If the
-  // GrallocFrameBuffer does not have support for the transformation to
-  // |fourcc|, it will assume that the amount of data to lock is based on
-  // |buffer.length|, otherwise it will use the ImageProcessor::ConvertedSize.
-  //arc::GrallocFrameBuffer output_frame(
-  //    *stream_buffer->buffer, stream_buffer->stream->width,
-  //    stream_buffer->stream->height, fourcc, buffer.length,
-  //    stream_buffer->stream->usage);
-  //res = output_frame.Map();
-  //if (res) {
-  //  HAL_LOGE("Failed to map output frame.");
-  //  request_context->request.reset();
-  //  return -EINVAL;
-  //}
-  //if (request_context->camera_buffer->GetFourcc() == fourcc &&
-  //    request_context->camera_buffer->GetWidth() ==
-  //        stream_buffer->stream->width &&
-  //    request_context->camera_buffer->GetHeight() ==
-  //        stream_buffer->stream->height) {
-  //  // If no format conversion needs to be applied, directly copy the data over.
-  //  memcpy(output_frame.GetData(), request_context->camera_buffer->GetData(),
-  //         request_context->camera_buffer->GetDataSize());
-  //} else {
-  //  // Perform the format conversion.
-  //  arc::CachedFrame cached_frame;
-  //  cached_frame.SetSource(request_context->camera_buffer.get(), 0);
-  //  cached_frame.Convert(request_context->request->settings, &output_frame);
-  //}
-
   request_context->request.reset();
   // Mark the buffer as not in flight.
   request_context->active = false;
