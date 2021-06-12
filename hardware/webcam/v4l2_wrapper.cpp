@@ -27,8 +27,12 @@
 #include <linux/videodev2.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>    
+#include <sys/mman.h>
+
 #include "arc/cached_frame.h"
 
+#include "gralloc_priv.h"
 #include "fly_socket.h"
 
 namespace v4l2_camera_hal {
@@ -688,25 +692,38 @@ int V4L2Wrapper::EnqueueRequest(
       HAL_LOGE("Failed to get gralloc module.");
       return -ENODEV;
     }
-    const gralloc_module_t* gralloc_module_ = reinterpret_cast<const gralloc_module_t*>(module);
-    buffer_handle_t buffer = *stream_buffer->buffer;
-    camera3_stream_t* stream = stream_buffer->stream;
-    lockformat = stream->format;
-    lockwidth = stream->width;
-    lockheight = stream->height;
-    void* vddr;
-    ret = gralloc_module_->lock(gralloc_module_, buffer, stream->usage, 0, 0,  lockwidth, lockheight, &vddr);
-    if (ret || !module) {
-      HAL_LOGE("lock Failed.");
-    }
-    device_buffer.m.userptr = reinterpret_cast<unsigned long>(vddr);
-    lockdata = reinterpret_cast<void*>(device_buffer.m.userptr);
-    FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
-	ret = gralloc_module_->unlock(gralloc_module_, buffer);
-    if (ret) {
-	  HAL_LOGE("Failed to unlock buffer at %p", buffer);
-	  return -ENODEV;
-    }
+
+    buffer_handle_t handle = *stream_buffer->buffer;
+    lockformat = stream_buffer->stream->format;
+    lockwidth = stream_buffer->stream->width;
+    lockheight = stream_buffer->stream->height;
+    private_handle_t* hnd = (private_handle_t*)handle;
+	//HAL_LOGE("hnd->base=%d", hnd->base);
+	if (private_handle_t::validate(handle) < 0){
+		HAL_LOGE("validate hnd->base error");
+	}else{
+		if (hnd->base == 0) {
+			HAL_LOGE("hnd->base=%d", hnd->base);
+			void *mappedAddress = MAP_FAILED;
+	        void *base = mmap(0, hnd->size, PROT_READ| PROT_WRITE, MAP_SHARED, hnd->fd, 0);
+			if(base == MAP_FAILED) {
+				HAL_LOGE("ion: Failed to map memory in the client: %s", strerror(errno));
+			} else {
+				HAL_LOGE("ion: Mapped buffer base:%p size:%u offset:%u fd:%d", base, hnd->size, hnd->offset, hnd->fd);
+			}
+			mappedAddress = base;
+			hnd->base = uint64_t(mappedAddress);
+		}
+		//HAL_LOGE("hnd->base=%d", hnd->base);
+	    *(&lockdata) = (void*)hnd->base;
+	    device_buffer.m.userptr = reinterpret_cast<unsigned long>(lockdata);
+	    FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
+	}
+	//ret = gralloc_module_->unlock(gralloc_module_, buffer);
+    //if (ret) {
+	//  HAL_LOGE("Failed to unlock buffer at %p", buffer);
+	//  return -ENODEV;
+    //}
   }
 
   std::lock_guard<std::mutex> guard(buffer_queue_lock_);
