@@ -48,14 +48,11 @@ private:
     volatile int readWidth;
     volatile int readHeight;
 
-    const char *PROP_WEBCAM_ROTATE    = "persist.sys.webcam.rotate";
-    const char *PROP_WEBCAM_MOMO      = "persist.sys.webcam.momo";
-    const char *PROP_WEBCAM_DEBUG     = "persist.sys.webcam.debug";
+    const char *PROP_WEBCAM_ROTATE    = "persist.vendor.webcam.rotate";
+    const char *PROP_WEBCAM_DEBUG     = "persist.vendor.webcam.debug";
     char webcam_rotate[PROPERTY_VALUE_MAX];
-    char webcam_momo[PROPERTY_VALUE_MAX];
     char webcam_debug[PROPERTY_VALUE_MAX];
     volatile int is_rotate = 0;
-    volatile int is_momo = 0;
     volatile int is_debug = 0;
 
     volatile int mCameraID = 0;

@@ -67,11 +67,9 @@ void FlySocket::open(int cameraID, int format, uint32_t width, uint32_t height) 
     mCameraID = cameraID;
 
     property_get(PROP_WEBCAM_ROTATE,webcam_rotate, "false");
-    property_get(PROP_WEBCAM_MOMO,webcam_momo, "false");
     property_get(PROP_WEBCAM_DEBUG,webcam_debug, "false");
 
     is_rotate=strncmp(webcam_rotate, "true",4) == 0 ? 1 : 0;
-    is_momo=strncmp(webcam_momo, "true",4) == 0 ? 1 : 0;
     is_debug=strncmp(webcam_debug, "true",4) == 0 ? 1 : 0;
 
     int tryNum = 0;
