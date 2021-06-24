@@ -178,12 +178,15 @@ int AddFormatComponents(
 
     for (const auto& frame_size : frame_sizes) {
       // Note the format and size combination in stream configs.
-      stream_configs.push_back(
-          {{hal_format,
-            frame_size[0],
-            frame_size[1],
-            ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS_OUTPUT}});
-
+      stream_configs.push_back({{hal_format, frame_size[0],frame_size[1],ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS_OUTPUT}});
+      //switch (hal_format) {
+      //   case HAL_PIXEL_FORMAT_YCbCr_420_888:
+      //   case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
+      //     stream_configs.push_back({{hal_format, frame_size[0],frame_size[1],ANDROID_SCALER_AVAILABLE_STREAM_CONFIGURATIONS_INPUT}});
+      //     break;
+      //   default:
+      //     break;
+      //}
       // Find the duration range for this format and size.
       std::array<int64_t, 2> duration_range;
       res = device->GetFormatFrameDurationRange(

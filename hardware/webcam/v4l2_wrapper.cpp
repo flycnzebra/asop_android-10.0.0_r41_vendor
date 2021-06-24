@@ -311,7 +311,7 @@ int V4L2Wrapper::GetControl(uint32_t control_id, int32_t* value) {
 int V4L2Wrapper::SetControl(uint32_t control_id,
                             int32_t desired,
                             int32_t* result) {
-  HAL_LOGE("%s()", __func__);
+  //HAL_LOGE("%s()", __func__);
   int32_t result_value = 0;
 
   // TODO(b/29334616): When async, this may need to check if the stream
@@ -567,22 +567,22 @@ int V4L2Wrapper::SetFormat(const StreamFormat& desired_format,
 
   // Select the matching format, or if not available, select a qualified format
   // we can convert from.
-  SupportedFormat format;
-  if (!StreamFormat::FindBestFitFormat(supported_formats_, qualified_formats_,
-                                       desired_format.v4l2_pixel_format(),
-                                       desired_format.width(),
-                                       desired_format.height(), &format)) {
-    HAL_LOGE(
-        "Unable to find supported resolution in list, "
-        "width: %d, height: %d",
-        desired_format.width(), desired_format.height());
-    return -EINVAL;
-  }
+  //SupportedFormat format;
+  //if (!StreamFormat::FindBestFitFormat(supported_formats_, qualified_formats_,
+  //                                     desired_format.v4l2_pixel_format(),
+  //                                     desired_format.width(),
+  //                                     desired_format.height(), &format)) {
+  //  HAL_LOGE(
+  //      "Unable to find supported resolution in list, "
+  //      "width: %d, height: %d",
+  //      desired_format.width(), desired_format.height());
+  //  return -EINVAL;
+  //}
 
   // Set the camera to the new format.
   v4l2_format new_format;
-  const StreamFormat resolved_format(format);
-  resolved_format.FillFormatRequest(&new_format);
+  //const StreamFormat resolved_format(format);
+  desired_format.FillFormatRequest(&new_format);
 
   // TODO(b/29334616): When async, this will need to check if the stream
   // is on, and if so, lock it off while setting format.
@@ -592,7 +592,7 @@ int V4L2Wrapper::SetFormat(const StreamFormat& desired_format,
   }
 
   // Check that the driver actually set to the requested values.
-  if (resolved_format != new_format) {
+  if (desired_format != new_format) {
     HAL_LOGE("Device doesn't support desired stream configuration.");
     return -EINVAL;
   }
@@ -679,13 +679,14 @@ int V4L2Wrapper::EnqueueRequest(
     return -ENODEV;
   }
   // Setup our request context and fill in the user pointer field.
+
   RequestContext* request_context;
-  //void* data;
-  {
+  int num_stream = (int)request->output_buffers.size();
+  for(int nn=0;nn<num_stream;nn++){
     std::lock_guard<std::mutex> guard(buffer_queue_lock_);
     request_context = &buffers_[index];
     request_context->request = request;
-    const camera3_stream_buffer_t* stream_buffer = &request->output_buffers[0];
+    const camera3_stream_buffer_t* stream_buffer = &request->output_buffers[nn];
     const hw_module_t* module = nullptr;
     int ret = hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module);
     if (ret || !module) {
@@ -698,33 +699,38 @@ int V4L2Wrapper::EnqueueRequest(
     lockwidth = stream_buffer->stream->width;
     lockheight = stream_buffer->stream->height;
     private_handle_t* hnd = (private_handle_t*)handle;
-	//HAL_LOGE("hnd->base=%d", hnd->base);
-	if (private_handle_t::validate(handle) < 0){
-		HAL_LOGE("validate hnd->base error");
-	}else{
-		if (hnd->base == 0) {
-			HAL_LOGE("hnd->base=%d", hnd->base);
-			void *mappedAddress = MAP_FAILED;
-	        void *base = mmap(0, hnd->size, PROT_READ| PROT_WRITE, MAP_SHARED, hnd->fd, 0);
-			if(base == MAP_FAILED) {
-				HAL_LOGE("ion: Failed to map memory in the client: %s", strerror(errno));
-			} else {
-				HAL_LOGE("ion: Mapped buffer base:%p size:%u offset:%u fd:%d", base, hnd->size, hnd->offset, hnd->fd);
-			}
-			mappedAddress = base;
-			hnd->base = uint64_t(mappedAddress);
-		}
-		//HAL_LOGE("hnd->base=%d", hnd->base);
-	    *(&lockdata) = (void*)hnd->base;
-	    device_buffer.m.userptr = reinterpret_cast<unsigned long>(lockdata);
-	    FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
-	}
-	//ret = gralloc_module_->unlock(gralloc_module_, buffer);
-    //if (ret) {
-	//  HAL_LOGE("Failed to unlock buffer at %p", buffer);
-	//  return -ENODEV;
-    //}
+    //HAL_LOGE("hnd->base=%d", hnd->base);
+    if (private_handle_t::validate(handle) < 0){
+    	HAL_LOGE("validate hnd->base error");
+    	return -ENODEV;
+    }else{
+      if (hnd->base == 0) {
+      	//HAL_LOGE("hnd->base=%d", hnd->base);
+      	void *mappedAddress = MAP_FAILED;
+        void *base = mmap(0, hnd->size, PROT_READ| PROT_WRITE, MAP_SHARED, hnd->fd, 0);
+      	if(base == MAP_FAILED) {
+      		HAL_LOGE("ion: Failed to map memory in the client: %s", strerror(errno));
+      		return -ENODEV;
+      	}
+      	//else {
+      	//	HAL_LOGE("ion: Mapped buffer base:%p size:%u offset:%u fd:%d", base, hnd->size, hnd->offset, hnd->fd);
+      	//}
+      	mappedAddress = base;
+      	hnd->base = uint64_t(mappedAddress);
+      }
+      //HAL_LOGE("hnd->base=%d", hnd->base);
+      *(&lockdata) = (void*)hnd->base;
+      device_buffer.m.userptr = reinterpret_cast<unsigned long>(lockdata);
+      FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
+      //munmap((void*)hnd->base, hnd->size);
+      //hnd->base = 0;
+    }
   }
+  //ret = gralloc_module_->unlock(gralloc_module_, buffer);
+  //if (ret) {
+  //  HAL_LOGE("Failed to unlock buffer at %p", buffer);
+  //  return -ENODEV;
+  //}
 
   std::lock_guard<std::mutex> guard(buffer_queue_lock_);
   request_context->active = true;
