@@ -722,8 +722,8 @@ int V4L2Wrapper::EnqueueRequest(
       *(&lockdata) = (void*)hnd->base;
       device_buffer.m.userptr = reinterpret_cast<unsigned long>(lockdata);
       FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
-      //munmap((void*)hnd->base, hnd->size);
-      //hnd->base = 0;
+      munmap((void*)hnd->base, hnd->size);
+      hnd->base = 0;
     }
   }
   //ret = gralloc_module_->unlock(gralloc_module_, buffer);
