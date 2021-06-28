@@ -44,7 +44,7 @@
 //        "libyuvz",
 //        "libjpeg_static_ndk",
 //    ],
-//    include_dirs: [
+//     header_libs: ["libhardware_headers"],: [
 //        "system/core/include",
 //        "system/media/camera/include",
 //    ],

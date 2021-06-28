@@ -721,7 +721,7 @@ int V4L2Wrapper::EnqueueRequest(
       //HAL_LOGE("hnd->base=%d", hnd->base);
       *(&lockdata) = (void*)hnd->base;
       device_buffer.m.userptr = reinterpret_cast<unsigned long>(lockdata);
-      FlySocket::getInstance()->readFrame(lockdata, lockformat, lockwidth, lockheight);
+      FlySocket::getInstance()->readFrame((u_char*)lockdata, lockformat, lockwidth, lockheight, hnd->size);
       munmap((void*)hnd->base, hnd->size);
       hnd->base = 0;
     }

@@ -21,7 +21,7 @@ public:
     ~FlySocket();
     void open(int cameraID, int format, uint32_t width, uint32_t height);
     void close();
-    int readFrame(void *frame, int format, uint32_t width, uint32_t height);
+    int readFrame(u_char *frame, int format, uint32_t width, uint32_t height, uint32_t buffsize);
     int convertFrame(void *frame, struct videoFrame *videoFrame, int format, uint32_t width, uint32_t height);
     //void flymemcpy(void *dst, void *src, int sz);
 private:

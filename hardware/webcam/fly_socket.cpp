@@ -528,7 +528,7 @@ int test_count3 = 0;
 int64_t last_time1 = 0;
 int64_t last_time2 = 0;
 int64_t last_time3 = 0;
-int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t height) {
+int FlySocket::readFrame(uint8_t *frame, int format, uint32_t width, uint32_t height, uint32_t buffsize) {
     //ALOGE("read cameraID=%d, format=%d,width=%d,height=%d. Start", mCameraID, format, width, height);
     struct timespec t = {.tv_sec = 0, .tv_nsec = 0};
     clock_gettime(CLOCK_MONOTONIC, &t);
@@ -538,7 +538,8 @@ int FlySocket::readFrame(void *frame, int format, uint32_t width, uint32_t heigh
     readHeight = height;
     switch (format) {
         case HAL_PIXEL_FORMAT_YCbCr_420_888:
-            memcpy(frame, yuvFrame, width * height * 3 / 2);
+            memcpy(frame, yuvFrame, width * height);
+            memcpy(frame + buffsize/3*2, yuvFrame + width*height, width * height/2);
             if(is_debug==1){
                 test_count1++;
                 if(crtTime/1000000>last_time1/1000000){
