@@ -249,7 +249,7 @@ LOCAL_MODULE_OWNER := qcom
 
 LOCAL_PROPRIETARY_MODULE := true
 
-LOCAL_CFLAGS += -Werror
+LOCAL_CFLAGS += -Werror -Wno-unused-parameter
 
 include $(BUILD_SHARED_LIBRARY)
 
