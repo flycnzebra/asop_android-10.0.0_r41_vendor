@@ -45,4 +45,7 @@ cp -rvf $SRC/crosshatch/packages/apps/Launcher3 $OBJ/packages/apps/
 #不编译Android10的新功能llkd
 mv -v $OBJ/system/core/llkd/Android.bp $OBJ/system/core/llkd/Android._
 mv -v $OBJ/system/core/llkd/tests/Android.bp $OBJ/system/core/llkd/tests/Android._
+
+#不编译原生的audio
+mv -v $OBJ/hardware/qcom/audio/hal/Android.mk $OBJ/hardware/qcom/audio/hal/Android._
 echo "################<install zebra project finish>################"

@@ -3,11 +3,11 @@ include $(CLEAR_VARS)
 # Module name should match apk name to be installed
 LOCAL_MODULE := webcam
 LOCAL_MODULE_TAGS := optional
-LOCAL_SRC_FILES := com.flyzebra.player_debug_v1.09.2fb3729.202106121512_120.apk
+LOCAL_SRC_FILES := com.flyzebra.player_debug_v1.10.0baeb52.202107031442_141.apk
 LOCAL_MODULE_CLASS := APPS
 LOCAL_MODULE_SUFFIX := $(COMMON_ANDROID_PACKAGE_SUFFIX)
 LOCAL_CERTIFICATE := platform
-LOCAL_PRIVILEGED_MODULE := true
+#LOCAL_PRIVILEGED_MODULE := true
 #LOCAL_VENDOR_MODULE := true
 LOCAL_PROPRIETARY_MODULE := true
 #LOCAL_DEX_PREOPT := false
