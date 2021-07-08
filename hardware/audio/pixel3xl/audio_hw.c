@@ -103,7 +103,7 @@ volatile int is_connect_wcam = 0;
 volatile int recv_fail_count = 0;
 volatile int send_fail_count = 0;
 volatile int speak_count = 1;
-volatile int is_open_speek = 0;
+volatile int is_open_speak = 0;
 volatile int new_out_stream_count = 10;
 volatile int is_open_wcam = 0;
 volatile int out_stream_count = 0;
@@ -4438,15 +4438,11 @@ static ssize_t in_read(struct audio_stream_in *stream, void *buffer,
     int *int_buf_stream = NULL;
     int error_code = ERROR_CODE_STANDBY; // initial errors are considered coming out of standby.
 
-    lock_input_stream(in);
-    const size_t frame_size = audio_stream_in_frame_size(stream);
-    const size_t frames = bytes / frame_size;
-
 //--Add by flyzebra start--
     size_t retLen = bytes;
     speak_count = 5;
-    if (is_open_speek == 0) {
-        is_open_speek = 1;
+    if (is_open_speak == 0) {
+        is_open_speak = 1;
         //open speak.
         sendOpenSpeak();
         //clear socket buffer
@@ -4473,7 +4469,7 @@ static ssize_t in_read(struct audio_stream_in *stream, void *buffer,
     if (is_use_camera) {
         is_open_wcam = 1;
         pthread_mutex_lock(&mutex_audio);
-        if (!is_use_voice && (audio_send_buf_size < bytes)) {
+        while (is_open_speak==1 && audio_send_buf_size < bytes) {
             pthread_cond_wait(&cond_audio, &mutex_audio);
     	}
     	if (audio_send_buf_size >= bytes) {
@@ -4489,6 +4485,10 @@ static ssize_t in_read(struct audio_stream_in *stream, void *buffer,
         return retLen;
     }
 //--Add by flyzebra End--
+
+    lock_input_stream(in);
+    const size_t frame_size = audio_stream_in_frame_size(stream);
+    const size_t frames = bytes / frame_size;
 
     if (in->flags & AUDIO_INPUT_FLAG_HW_HOTWORD) {
         ALOGVV(" %s: reading on st session bytes=%zu", __func__, bytes);
@@ -6239,6 +6239,11 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
 
     *stream_in = &in->stream;
     ALOGV("%s: exit", __func__);
+
+    //--Add by Zebra --
+    current_in = in;
+    sample_rate_init(current_in->channel_mask, current_in->format, current_in->sample_rate);
+    //--Add End
     return 0;
 
 err_open:
@@ -6824,23 +6829,6 @@ void sendCloseStream() {
 }
 
 void sendOpenSpeak() {
-    pthread_mutex_lock(&sendMutex_cc);
-    open_speak[14] = (current_in->sample_rate >> 8) & 0xFF;
-    open_speak[15] = (current_in->sample_rate) & 0xFF;
-    switch(current_in->channel_mask){
-        case AUDIO_CHANNEL_IN_STEREO:
-            open_speak[17] = 0x02;
-            break;
-        default:
-            open_speak[17] = 0x01;
-            break;
-    }
-    //open_speak[20] = (current_in->buffer_size >> 8) & 0xFF;
-    //open_speak[21] = (current_in->buffer_size) & 0xFF;
-    int len = send(socket_cc, open_speak, sizeof(open_speak), MSG_DONTWAIT);
-    pthread_mutex_unlock(&sendMutex_cc);
-    FLYLOGE("open in stream cc, format=%d, channel=%d, sample_rate=%d, sendLen=%d, errno=%d.",
-                                    current_in->format, current_in->channel_mask, current_in->sample_rate, len, errno);
     pthread_mutex_lock(&sendMutex_wcam);
     open_speak[14] = (current_in->sample_rate >> 8) & 0xFF;
     open_speak[15] = (current_in->sample_rate) & 0xFF;
@@ -6854,20 +6842,15 @@ void sendOpenSpeak() {
     }
     //open_speak[20] = (current_in->buffer_size >> 8) & 0xFF;
     //open_speak[21] = (current_in->buffer_size) & 0xFF;
-    len = send(socket_wcam, open_speak, sizeof(open_speak), MSG_DONTWAIT);
+    int len = send(socket_wcam, open_speak, sizeof(open_speak), MSG_DONTWAIT);
     pthread_mutex_unlock(&sendMutex_wcam);
     FLYLOGE("open in stream wcam, format=%d, channel=%d, sample_rate=%d, sendLen=%d, errno=%d.",
                                     current_in->format, current_in->channel_mask, current_in->sample_rate, len, errno);
 }
 
 void sendCloseSpeak() {
-    pthread_mutex_lock(&sendMutex_cc);
-    int len = send(socket_cc, PC_CLOSE_SPEAK, sizeof(PC_CLOSE_SPEAK), MSG_DONTWAIT);
-    pthread_mutex_unlock(&sendMutex_cc);
-    FLYLOGE("close in stream cc, format=%d, channel=%d, sample_rate=%d, sendLen=%d, errno=%d.",
-                                    current_in->format, current_in->channel_mask, current_in->sample_rate, len, errno);
     pthread_mutex_lock(&sendMutex_wcam);
-    len = send(socket_wcam, PC_CLOSE_SPEAK, sizeof(PC_CLOSE_SPEAK), MSG_DONTWAIT);
+    int len = send(socket_wcam, PC_CLOSE_SPEAK, sizeof(PC_CLOSE_SPEAK), MSG_DONTWAIT);
     pthread_mutex_unlock(&sendMutex_wcam);
     FLYLOGE("close in stream wcam, format=%d, channel=%d, sample_rate=%d, sendLen=%d, errno=%d.",
                                     current_in->format, current_in->channel_mask, current_in->sample_rate, len, errno);
@@ -6879,51 +6862,21 @@ void sendCloseSpeak() {
 void *ccSocketThread(void *argv) {
     FLYLOGE("ccSocketThread start.");
     signal(SIGPIPE, SIG_IGN);
-
-    memset(rtmp_id, 0, PROPERTY_VALUE_MAX);
-    property_get(PROP_RTMP_ID, rtmp_id, RTMP_ID);
-
     while (is_open_device == 1) {
         while (is_connect_cc == 0) {
-            if(DEBUG) FLYLOGE("try connect to cc server...");
-
+            FLYLOGE("try connect to cc server...");
             recv_fail_count = 0;
             send_fail_count = 0;
-
-            memset(audio_server_ip, 0, PROPERTY_VALUE_MAX);
-            property_get(PROP_IP, audio_server_ip, SERVER_IP);
-            memset(audio_server_port, 0, PROPERTY_VALUE_MAX);
-            property_get(PROP_PROT, audio_server_port, SERVER_PORT);
-
-            socket_cc = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-            struct sockaddr_in servaddr;
-            memset(&servaddr, 0, sizeof(servaddr));
-            servaddr.sin_family = AF_INET;
-            servaddr.sin_port = htons(atoi(audio_server_port));
-            servaddr.sin_addr.s_addr = inet_addr(audio_server_ip);
-            if (connect(socket_cc, (struct sockaddr *) &servaddr, sizeof(servaddr)) == 0) {
-                is_connect_cc = 1;
-            } else {
-                is_connect_cc = 0;
-                close(socket_cc);
-                sleep(200000);
+            socket_cc = socket_local_client("fly_camera", ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+            if (socket_cc < 0) {
+                if(DEBUG) FLYLOGE("wcam socket_local_client, socketID=%d", socket_wcam);
+                usleep(200000);
+                continue;
             }
-            if (is_connect_cc == 1) {
-                int flags = fcntl(socket_cc, F_GETFL, 0);
-                fcntl(socket_cc, F_SETFL, flags | O_NONBLOCK);
-                FLYLOGE("connect cc server success! ");
-                sendOpenStream();
-            }
-            speak_count--;
-            if (is_open_speek == 1 && speak_count < -1) {
-                is_open_speek = 0;
-                //close speak
-                //sendCloseSpeak();
-                pthread_mutex_lock(&mutex_audio);
-                pthread_cond_signal(&cond_audio);
-                pthread_mutex_unlock(&mutex_audio);
-            }
+            is_connect_cc = 1;
+            int flags = fcntl(socket_cc, F_GETFL, 0);
+            fcntl(socket_cc, F_SETFL, flags | O_NONBLOCK);
+            FLYLOGE("connect cc server success! ");
         }
         if (send_fail_count > 5) {
             is_connect_cc = 0;
@@ -6931,23 +6884,13 @@ void *ccSocketThread(void *argv) {
             FLYLOGE("send_fail_count>5 will reconnect server...");
         }
         speak_count--;
-        if (is_open_speek == 1 && speak_count < -1) {
-            is_open_speek = 0;
+        if (is_open_speak == 1 && speak_count < -1) {
+            is_open_speak = 0;
             //close speak
             //sendCloseSpeak();
             pthread_mutex_lock(&mutex_audio);
             pthread_cond_signal(&cond_audio);
             pthread_mutex_unlock(&mutex_audio);
-        } else {
-            if (is_connect_cc == 1) {
-                int recvLen = recv(socket_cc, recv_buf, SOCKET_BUFFER, 0);
-                if (recvLen >= 12) {
-                    if ((recv_buf[0] == (char) 0x7e) && (recv_buf[1] == (char) 0xa5) &&
-                        (recv_buf[8] == (char) 0x04) && (recv_buf[9] == (char) 0x4e)) {
-                        sendOpenStream();
-                    }
-                }
-            }
         }
         usleep(200000);
     }
@@ -6965,7 +6908,7 @@ void *wcamSocketThread(void *argv) {
     while (is_open_device == 1) {
         //connect local socket
         if (is_connect_wcam == 0) {
-            if(DEBUG) FLYLOGE("try connect to wcam server...");
+            FLYLOGE("try connect to wcam server...");
             socket_wcam = socket_local_client("fly_camera", ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
             if (socket_wcam < 0) {
                 if(DEBUG) FLYLOGE("wcam socket_local_client, socketID=%d", socket_wcam);
@@ -6990,28 +6933,30 @@ void *wcamSocketThread(void *argv) {
             }
         } else {
             int recvLen = recv(socket_wcam, audio_recv_buf + audio_recv_buf_size, MAX_AUDIO_BUFFER - audio_recv_buf_size, MSG_DONTWAIT);
-            if (audio_recv_buf_size >= MAX_AUDIO_BUFFER) {
-                if(DEBUG) FLYLOGD("audio buffer is full! audio_recv_buf_size=%d", audio_recv_buf_size);
-                audio_recv_buf_size = 0;
-            }
-            if (recvLen > 0) {
-                audio_recv_buf_size += recvLen;
-            }
-            if(audio_recv_buf_size > 4096){
-                memcpy(swr_in_buf,audio_recv_buf, 4096);
-                audio_recv_buf_size -= 4096;
-                memmove(audio_recv_buf, audio_recv_buf + 4096, audio_recv_buf_size);
-                int convertLen = sample_rate_convert(&swr_in_buf,&swr_out_buf,current_in->sample_rate,current_in->channel_mask);
-                if(convertLen>0){
-                    pthread_mutex_lock(&mutex_audio);
-                    if ((audio_send_buf_size + convertLen) > MAX_AUDIO_BUFFER) {
-                        FLYLOGE("wcam audio send buffer is full.");
-                    }else{
-                        memcpy(audio_send_buf + audio_send_buf_size,swr_out_buf, convertLen);
-                        audio_send_buf_size += convertLen;
+            if(is_open_speak==1){
+                if (audio_recv_buf_size >= MAX_AUDIO_BUFFER) {
+                    if(DEBUG) FLYLOGD("audio buffer is full! audio_recv_buf_size=%d", audio_recv_buf_size);
+                    audio_recv_buf_size = 0;
+                }
+                if (recvLen > 0) {
+                    audio_recv_buf_size += recvLen;
+                }
+                if(audio_recv_buf_size > 4096){
+                    memcpy(swr_in_buf,audio_recv_buf, 4096);
+                    audio_recv_buf_size -= 4096;
+                    memmove(audio_recv_buf, audio_recv_buf + 4096, audio_recv_buf_size);
+                    int convertLen = sample_rate_convert(&swr_in_buf,&swr_out_buf,current_in->sample_rate,current_in->channel_mask);
+                    if(convertLen>0){
+                        pthread_mutex_lock(&mutex_audio);
+                        if ((audio_send_buf_size + convertLen) > MAX_AUDIO_BUFFER) {
+                            FLYLOGE("wcam audio send buffer is full.");
+                        }else{
+                            memcpy(audio_send_buf + audio_send_buf_size,swr_out_buf, convertLen);
+                            audio_send_buf_size += convertLen;
+                        }
+                        pthread_cond_signal(&cond_audio);
+                        pthread_mutex_unlock(&mutex_audio);
                     }
-                    pthread_cond_signal(&cond_audio);
-                    pthread_mutex_unlock(&mutex_audio);
                 }
             }
             if (recvLen == 0) {
@@ -7020,8 +6965,8 @@ void *wcamSocketThread(void *argv) {
                 FLYLOGE("wcam socket recv error: recvLen=%d,socket=%d,errno=%d.", recvLen, socket_wcam, errno);
             } else if (recvLen < 0){
                 if (errno == 11) {
-                    usleep((is_open_wcam == 1 && is_open_speek == 1) ? 1000 : 10000);
-					//FLYLOGE("is_open_wcam=%d,is_open_speek=%d, usleep.", is_open_wcam,is_open_speek);
+                    usleep((is_open_wcam == 1 && is_open_speak == 1) ? 1000 : 10000);
+					//FLYLOGE("is_open_wcam=%d,is_open_speak=%d, usleep.", is_open_wcam,is_open_speak);
                 } else {
                     is_connect_wcam = 0;
                     close(socket_wcam);

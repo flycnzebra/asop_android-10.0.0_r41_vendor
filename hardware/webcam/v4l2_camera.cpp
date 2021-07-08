@@ -429,11 +429,10 @@ int V4L2Camera::setupStreams(camera3_stream_configuration_t* stream_config) {
   return 0;
 }
 
-bool V4L2Camera::isValidRequestSettings(
-    const android::CameraMetadata& settings) {
+bool V4L2Camera::isValidRequestSettings(const android::CameraMetadata& settings) {
   if (!metadata_->IsValidRequest(settings)) {
     HAL_LOGE("Invalid request settings.");
-    return false;
+    //return false;
   }
   return true;
 }
