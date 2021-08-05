@@ -20,4 +20,10 @@
 #define kVersionMajor 1
 #define kVersionMinor 2
 
+#include <media/stagefright/foundation/AMessage.h>
+
+
+int screenrecord_start(android::sp<android::AMessage> notify);
+int screenrecord_stop();
+
 #endif /*SCREENRECORD_SCREENRECORD_H*/

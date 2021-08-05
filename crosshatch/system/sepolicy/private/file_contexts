@@ -158,7 +158,7 @@
 /dev/socket/usap_pool_primary	u:object_r:zygote_socket:s0
 /dev/socket/usap_pool_secondary	u:object_r:zygote_socket:s0
 # add by tangshiyuan for ratd
-/dev/socket/ratd                u:object_r:ratd_socket:s0
+/dev/socket/socket_ratd                u:object_r:ratd_socket:s0
 /dev/spdif_out.*	u:object_r:audio_device:s0
 /dev/tty		u:object_r:owntty_device:s0
 /dev/tty[0-9]*		u:object_r:tty_device:s0

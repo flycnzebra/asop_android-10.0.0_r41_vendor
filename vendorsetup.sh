@@ -6,10 +6,8 @@ SRC=vendor/zebra
 OBJ=.
 #MYDIR=.
 #TODIR=vendor/zebra 
-
 #copy rbuild 
 cp -v $SRC/rbuild.sh $OBJ/
-
 #ZebrasSystemServer
 cp -v $SRC/crosshatch/frameworks/base/Android._ $OBJ/frameworks/base/Android.bp
 cp -v $SRC/crosshatch/frameworks/base/core/java/android/app/SystemServiceRegistry.java $OBJ/frameworks/base/core/java/android/app/SystemServiceRegistry.java
@@ -35,17 +33,15 @@ cp -rvf $SRC/crosshatch/build/target/product/security/* $OBJ/build/target/produc
 cp -rvf $SRC/crosshatch/build/core/* $OBJ/build/core/
 #All Selinux
 cp -rvf $SRC/crosshatch/system/sepolicy/* $OBJ/system/sepolicy/
-
+#init.rc
+cp -v $SRC/crosshatch/system/core/rootdir/init.rc $OBJ/system/core/rootdir/
 #gps
 cp -v $SRC/crosshatch/frameworks/base/services/core/java/com/android/server/location/GnssLocationProvider.java $OBJ/frameworks/base/services/core/java/com/android/server/location/
-
 #Launcher
 cp -rvf $SRC/crosshatch/packages/apps/Launcher3 $OBJ/packages/apps/
-
 #不编译Android10的新功能llkd
 mv -v $OBJ/system/core/llkd/Android.bp $OBJ/system/core/llkd/Android._
 mv -v $OBJ/system/core/llkd/tests/Android.bp $OBJ/system/core/llkd/tests/Android._
-
 #不编译原生的audio
 mv -v $OBJ/hardware/qcom/audio/hal/Android.mk $OBJ/hardware/qcom/audio/hal/Android._
 echo "################<install zebra project finish>################"

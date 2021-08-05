@@ -35,5 +35,6 @@ LOCAL_SHARED_LIBRARIES := libcutils liblog libcrypto libdl  libutils
 LOCAL_STATIC_LIBRARIES := time
 LOCAL_STRIP_MODULE := false
 LOCAL_MODULE := ratd
+LOCAL_MULTILIB := 32
 include $(BUILD_EXECUTABLE)
 

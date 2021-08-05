@@ -3892,6 +3892,11 @@
 <sourceFolder url="file://$MODULE_DIR$/./tools/tradefederation/core/util-apps/ContentProvider/main/java" isTestSource="false"/>
 <sourceFolder url="file://$MODULE_DIR$/./tools/tradefederation/core/util-apps/DeviceSetupUtil/src" isTestSource="false"/>
 <sourceFolder url="file://$MODULE_DIR$/./tools/tradefederation/core/util-apps/WifiUtil/src" isTestSource="false"/>
+<sourceFolder url="file://$MODULE_DIR$/./vendor/zebra/crosshatch/frameworks/base/core/java" isTestSource="false"/>
+<sourceFolder url="file://$MODULE_DIR$/./vendor/zebra/crosshatch/frameworks/base/services/core/java" isTestSource="false"/>
+<sourceFolder url="file://$MODULE_DIR$/./vendor/zebra/crosshatch/frameworks/base/services/java" isTestSource="false"/>
+<sourceFolder url="file://$MODULE_DIR$/./vendor/zebra/crosshatch/packages/apps/Launcher3/iconloaderlib/src" isTestSource="false"/>
+<sourceFolder url="file://$MODULE_DIR$/./vendor/zebra/crosshatch/packages/apps/Launcher3/src" isTestSource="false"/>
 <excludeFolder url="file://$MODULE_DIR$/./external/emma"/>
 <excludeFolder url="file://$MODULE_DIR$/./external/jdiff"/>
 <excludeFolder url="file://$MODULE_DIR$/out/eclipse"/>
@@ -3906,11 +3911,11 @@
 <excludeFolder url="file://$MODULE_DIR$/out/target/common/obj/JAVA_LIBRARIES/android_stubs_current_intermediates"/>
 <excludeFolder url="file://$MODULE_DIR$/out/target/product"/>
 <excludeFolder url="file://$MODULE_DIR$/prebuilt"/>
+
 <excludeFolder url="file://$MODULE_DIR$/art"/>
 <excludeFolder url="file://$MODULE_DIR$/bionic"/>
 <excludeFolder url="file://$MODULE_DIR$/bootable"/>
 <excludeFolder url="file://$MODULE_DIR$/build"/>
-<excludeFolder url="file://$MODULE_DIR$/compatibility"/>
 <excludeFolder url="file://$MODULE_DIR$/cts"/>
 <excludeFolder url="file://$MODULE_DIR$/dalvik"/>
 <excludeFolder url="file://$MODULE_DIR$/developers"/>
@@ -3923,6 +3928,8 @@
 <excludeFolder url="file://$MODULE_DIR$/kernel"/>
 <excludeFolder url="file://$MODULE_DIR$/libcore"/>
 <excludeFolder url="file://$MODULE_DIR$/libnativehelper"/>
+<excludeFolder url="file://$MODULE_DIR$/lock"/>
+<excludeFolder url="file://$MODULE_DIR$/Makefile"/>
 <excludeFolder url="file://$MODULE_DIR$/out"/>
 <excludeFolder url="file://$MODULE_DIR$/packages"/>
 <excludeFolder url="file://$MODULE_DIR$/pdk"/>
@@ -3933,8 +3940,6 @@
 <excludeFolder url="file://$MODULE_DIR$/test"/>
 <excludeFolder url="file://$MODULE_DIR$/toolchain"/>
 <excludeFolder url="file://$MODULE_DIR$/tools"/>
-<excludeFolder url="file://$MODULE_DIR$/vendor/google_devices"/>
-<excludeFolder url="file://$MODULE_DIR$/vendor/qcom"/>
 
     </content>
     <orderEntry type="module-library"><library><CLASSES><root url="jar://$MODULE_DIR$/./development/samples/training/EffectiveNavigation/libs/android-support-v4.jar!/"/></CLASSES><JAVADOC/><SOURCES/></library></orderEntry>

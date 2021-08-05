@@ -1,6 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 LOCAL_MODULE := lib-mpd
+LOCAL_MULTILIB := 32
 LOCAL_SRC_FILES := \
     mpd.c \
 	mpd_rx.c \

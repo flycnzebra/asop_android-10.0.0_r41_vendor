@@ -58,6 +58,7 @@
 #include "screenrecord.h"
 #include "Overlay.h"
 #include "FrameOutput.h"
+#include "HandlerEvent.h"
 
 using android::ABuffer;
 using android::ALooper;
@@ -121,8 +122,6 @@ static volatile bool gStopRequested = false;
 static struct sigaction gOrigSigactionINT;
 static struct sigaction gOrigSigactionHUP;
 
-
-static char temp[1024];
 
 /*
  * Catch keyboard interrupt signals.  On receipt, the "stop requested"
@@ -361,17 +360,17 @@ static status_t prepareVirtualDisplay(const DisplayInfo& mainDpyInfo,
  * The muxer must *not* have been started before calling.
  */
 static status_t runEncoder(const sp<MediaCodec>& encoder,
-        const sp<MediaMuxer>& muxer, FILE* rawFp, const sp<IBinder>& mainDpy,
-        const sp<IBinder>& virtualDpy, uint8_t orientation) {
+        const sp<IBinder>& mainDpy,
+        const sp<IBinder>& virtualDpy,
+        uint8_t orientation,
+        sp<AMessage> mNotify) {
     static int kTimeout = 250000;   // be responsive on signal
     status_t err;
-    ssize_t trackIdx = -1;
+    //ssize_t trackIdx = -1;
     uint32_t debugNumFrames = 0;
     int64_t startWhenNsec = systemTime(CLOCK_MONOTONIC);
     int64_t endWhenNsec = startWhenNsec + seconds_to_nanoseconds(gTimeLimitSec);
     DisplayInfo mainDpyInfo;
-
-    assert((rawFp == NULL && muxer != NULL) || (rawFp != NULL && muxer == NULL));
 
     Vector<sp<MediaCodecBuffer> > buffers;
     err = encoder->getOutputBuffers(&buffers);
@@ -403,11 +402,9 @@ static status_t runEncoder(const sp<MediaCodec>& encoder,
             // got a buffer
             if ((flags & MediaCodec::BUFFER_FLAG_CODECCONFIG) != 0) {
                 ALOGV("Got codec config buffer (%zu bytes)", size);
-                if (muxer != NULL) {
-                    // ignore this -- we passed the CSD into MediaMuxer when
-                    // we got the format change notification
-                    size = 0;
-                }
+                // ignore this -- we passed the CSD into MediaMuxer when
+                // we got the format change notification
+                size = 0;
             }
             if (size != 0) {
                 ALOGV("Got data in buffer %zu, size=%zu, pts=%" PRId64,
@@ -419,8 +416,7 @@ static status_t runEncoder(const sp<MediaCodec>& encoder,
                     //
                     // Polling for changes is inefficient and wrong, but the
                     // useful stuff is hard to get at without a Dalvik VM.
-                    err = SurfaceComposerClient::getDisplayInfo(mainDpy,
-                            &mainDpyInfo);
+                    err = SurfaceComposerClient::getDisplayInfo(mainDpy, &mainDpyInfo);
                     if (err != NO_ERROR) {
                         ALOGW("getDisplayInfo(main) failed: %d", err);
                     } else if (orientation != mainDpyInfo.orientation) {
@@ -440,47 +436,32 @@ static status_t runEncoder(const sp<MediaCodec>& encoder,
                     ptsUsec = systemTime(SYSTEM_TIME_MONOTONIC) / 1000;
                 }
 
-                if (muxer == NULL) {
-                    fwrite(buffers[bufIndex]->data(), 1, size, rawFp);
-                    // Flush the data immediately in case we're streaming.
-                    // We don't want to do this if all we've written is
-                    // the SPS/PPS data because mplayer gets confused.
-                    if ((flags & MediaCodec::BUFFER_FLAG_CODECCONFIG) == 0) {
-                        fflush(rawFp);
-                    }
-                } else {
-                    // The MediaMuxer docs are unclear, but it appears that we
-                    // need to pass either the full set of BufferInfo flags, or
-                    // (flags & BUFFER_FLAG_SYNCFRAME).
-                    //
-                    // If this blocks for too long we could drop frames.  We may
-                    // want to queue these up and do them on a different thread.
-                    ATRACE_NAME("write sample");
-                    assert(trackIdx != -1);
-                    // TODO
-                    sp<ABuffer> buffer = new ABuffer(
-                            buffers[bufIndex]->data(), buffers[bufIndex]->size());
-					memset(temp, 0, 1024);
-					int pint = buffers[bufIndex]->size();
-					if(pint>16) pint = 16;
-					for (int j = 0; j < 16; j++) {
-						sprintf(temp, "%s0x%02x,", temp, buffers[bufIndex]->data()[j]);
-					}
-					ALOGE("frame:%s", temp);
-                    err = muxer->writeSampleData(buffer, trackIdx,
-                            ptsUsec, flags);
-                    if (err != NO_ERROR) {
-                        fprintf(stderr,
-                            "Failed writing data to muxer (err=%d)\n", err);
-                        return err;
-                    }
-                }
+                // The MediaMuxer docs are unclear, but it appears that we
+                // need to pass either the full set of BufferInfo flags, or
+                // (flags & BUFFER_FLAG_SYNCFRAME).
+                //
+                // If this blocks for too long we could drop frames.  We may
+                // want to queue these up and do them on a different thread.
+                ATRACE_NAME("write sample");
+                //assert(trackIdx != -1);
+                // TODO
+                //sp<ABuffer> buffer = new ABuffer(buffers[bufIndex]->data(), buffers[bufIndex]->size());
+                //err = muxer->writeSampleData(buffer, trackIdx,  ptsUsec, flags);
+                //if (err != NO_ERROR) {
+                //    fprintf(stderr, "Failed writing data to muxer (err=%d)\n", err);
+                //    return err;
+                //}
+                sp<ABuffer> buffer = ABuffer::CreateAsCopy(buffers[bufIndex]->data()+4, buffers[bufIndex]->size()-4);
+                sp<AMessage> notify = mNotify->dup();
+                notify->setInt32("type", kWhatVideoFrameData);
+                notify->setInt64("ptsUsec", ptsUsec/1000);
+                notify->setBuffer("data", buffer);
+                notify->post();
                 debugNumFrames++;
             }
             err = encoder->releaseOutputBuffer(bufIndex);
             if (err != NO_ERROR) {
-                fprintf(stderr, "Unable to release output buffer (err=%d)\n",
-                        err);
+                fprintf(stderr, "Unable to release output buffer (err=%d)\n", err);
                 return err;
             }
             if ((flags & MediaCodec::BUFFER_FLAG_EOS) != 0) {
@@ -498,15 +479,32 @@ static status_t runEncoder(const sp<MediaCodec>& encoder,
                 ALOGV("Encoder format changed");
                 sp<AMessage> newFormat;
                 encoder->getOutputFormat(&newFormat);
-                if (muxer != NULL) {
-                    trackIdx = muxer->addTrack(newFormat);
-                    ALOGV("Starting muxer");
-                    err = muxer->start();
-                    if (err != NO_ERROR) {
-                        fprintf(stderr, "Unable to start muxer (err=%d)\n", err);
-                        return err;
-                    }
-                }
+                //if (muxer != NULL) {
+                //    trackIdx = muxer->addTrack(newFormat);
+                //    ALOGV("Starting muxer");
+                //    err = muxer->start();
+                //    if (err != NO_ERROR) {
+                //        fprintf(stderr, "Unable to start muxer (err=%d)\n", err);
+                //        return err;
+                //    }
+                //}
+                sp<ABuffer> csd0;
+                newFormat->findBuffer("csd-0", &csd0);
+                sp<ABuffer> csd1;
+                newFormat->findBuffer("csd-1", &csd1);
+                int32_t sps_len = csd0->capacity() - 4;
+                int32_t pps_len = csd1->capacity() - 4;
+                char *sps_pps = (char *) malloc((sps_len+pps_len) * sizeof(char));
+                memcpy(sps_pps, csd0->base()+4, sps_len);
+                memcpy(sps_pps+sps_len, csd1->base()+4, pps_len);
+                sp<ABuffer> spspps_buf = ABuffer::CreateAsCopy(sps_pps, sps_len+pps_len);
+                sp<AMessage> notify = mNotify->dup();
+                notify->setInt32("type", kWhatSPSPPSData);
+                notify->setInt32("sps_len", sps_len);
+                notify->setInt32("pps_len", pps_len);
+                notify->setBuffer("data", spspps_buf);
+                notify->post();
+                free(sps_pps);
             }
             break;
         case android::INFO_OUTPUT_BUFFERS_CHANGED:   // INFO_OUTPUT_BUFFERS_CHANGED
@@ -587,7 +585,7 @@ static inline uint32_t floorToEven(uint32_t num) {
  * Configures codec, muxer, and virtual display, then starts moving bits
  * around.
  */
-static status_t recordScreen(const char* fileName) {
+static status_t recordScreen(sp<AMessage> notify) {
     status_t err;
 
     // Configure signal handler.
@@ -700,94 +698,16 @@ static status_t recordScreen(const char* fileName) {
         return err;
     }
 
-    sp<MediaMuxer> muxer = NULL;
-    FILE* rawFp = NULL;
-    switch (gOutputFormat) {
-        case FORMAT_MP4:
-        case FORMAT_WEBM:
-        case FORMAT_3GPP: {
-            // Configure muxer.  We have to wait for the CSD blob from the encoder
-            // before we can start it.
-            err = unlink(fileName);
-            if (err != 0 && errno != ENOENT) {
-                fprintf(stderr, "ERROR: couldn't remove existing file\n");
-                abort();
-            }
-            int fd = open(fileName, O_CREAT | O_LARGEFILE | O_TRUNC | O_RDWR, S_IRUSR | S_IWUSR);
-            if (fd < 0) {
-                fprintf(stderr, "ERROR: couldn't open file\n");
-                abort();
-            }
-            if (gOutputFormat == FORMAT_MP4) {
-                muxer = new MediaMuxer(fd, MediaMuxer::OUTPUT_FORMAT_MPEG_4);
-            } else if (gOutputFormat == FORMAT_WEBM) {
-                muxer = new MediaMuxer(fd, MediaMuxer::OUTPUT_FORMAT_WEBM);
-            } else {
-                muxer = new MediaMuxer(fd, MediaMuxer::OUTPUT_FORMAT_THREE_GPP);
-            }
-            close(fd);
-            if (gRotate) {
-                muxer->setOrientationHint(90);  // TODO: does this do anything?
-            }
-            break;
-        }
-        case FORMAT_H264:
-        case FORMAT_FRAMES:
-        case FORMAT_RAW_FRAMES: {
-            rawFp = prepareRawOutput(fileName);
-            if (rawFp == NULL) {
-                if (encoder != NULL) encoder->release();
-                return -1;
-            }
-            break;
-        }
-        default:
-            fprintf(stderr, "ERROR: unknown format %d\n", gOutputFormat);
-            abort();
+    // Main encoder loop.
+    err = runEncoder(encoder, mainDpy, dpy, mainDpyInfo.orientation, notify);
+    if (err != NO_ERROR) {
+        fprintf(stderr, "Encoder failed (err=%d)\n", err);
+        // fall through to cleanup
     }
 
-    if (gOutputFormat == FORMAT_FRAMES || gOutputFormat == FORMAT_RAW_FRAMES) {
-        // TODO: if we want to make this a proper feature, we should output
-        //       an outer header with version info.  Right now we never change
-        //       the frame size or format, so we could conceivably just send
-        //       the current frame header once and then follow it with an
-        //       unbroken stream of data.
-
-        // Make the EGL context current again.  This gets unhooked if we're
-        // using "--bugreport" mode.
-        // TODO: figure out if we can eliminate this
-        frameOutput->prepareToCopy();
-
-        while (!gStopRequested) {
-            // Poll for frames, the same way we do for MediaCodec.  We do
-            // all of the work on the main thread.
-            //
-            // Ideally we'd sleep indefinitely and wake when the
-            // stop was requested, but this will do for now.  (It almost
-            // works because wait() wakes when a signal hits, but we
-            // need to handle the edge cases.)
-            bool rawFrames = gOutputFormat == FORMAT_RAW_FRAMES;
-            err = frameOutput->copyFrame(rawFp, 250000, rawFrames);
-            if (err == ETIMEDOUT) {
-                err = NO_ERROR;
-            } else if (err != NO_ERROR) {
-                ALOGE("Got error %d from copyFrame()", err);
-                break;
-            }
-        }
-    } else {
-        // Main encoder loop.
-        err = runEncoder(encoder, muxer, rawFp, mainDpy, dpy,
-                mainDpyInfo.orientation);
-        if (err != NO_ERROR) {
-            fprintf(stderr, "Encoder failed (err=%d)\n", err);
-            // fall through to cleanup
-        }
-
-        if (gVerbose) {
-            printf("Stopping encoder and muxer\n");
-            fflush(stdout);
-        }
+    if (gVerbose) {
+        printf("Stopping encoder and muxer\n");
+        fflush(stdout);
     }
 
     // Shut everything down, starting with the producer side.
@@ -795,13 +715,6 @@ static status_t recordScreen(const char* fileName) {
     SurfaceComposerClient::destroyDisplay(dpy);
     if (overlay != NULL) overlay->stop();
     if (encoder != NULL) encoder->stop();
-    if (muxer != NULL) {
-        // If we don't stop muxer explicitly, i.e. let the destructor run,
-        // it may hang (b/11050628).
-        err = muxer->stop();
-    } else if (rawFp != stdout) {
-        fclose(rawFp);
-    }
     if (encoder != NULL) encoder->release();
 
     return err;
@@ -958,7 +871,7 @@ static void usage() {
 /*
  * Parses args and kicks things off.
  */
-int start(int argc, char* const argv[]) {
+int screenrecord_main(int argc, char* const argv[]) {
     static const struct option longOptions[] = {
         { "help",               no_argument,        NULL, 'h' },
         { "verbose",            no_argument,        NULL, 'v' },
@@ -1099,11 +1012,21 @@ int start(int argc, char* const argv[]) {
         close(fd);
     }
 
-    status_t err = recordScreen(fileName);
+    status_t err = recordScreen(nullptr);
     if (err == NO_ERROR) {
         // Try to notify the media scanner.  Not fatal if this fails.
         notifyMediaScanner(fileName);
     }
     ALOGD(err == NO_ERROR ? "success" : "failed");
     return (int) err;
+}
+
+int screenrecord_start(sp<AMessage> notify){
+    gStopRequested = false;
+    recordScreen(notify);
+    return 0;
+}
+int screenrecord_stop(){
+    gStopRequested = true;
+    return 0;
 }
