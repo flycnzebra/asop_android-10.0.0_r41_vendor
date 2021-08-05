@@ -385,13 +385,13 @@ static status_t runEncoder(const sp<MediaCodec>& encoder,
         int64_t ptsUsec;
         uint32_t flags;
 
-        if (systemTime(CLOCK_MONOTONIC) > endWhenNsec) {
-            if (gVerbose) {
-                printf("Time limit reached\n");
-                fflush(stdout);
-            }
-            break;
-        }
+        //if (systemTime(CLOCK_MONOTONIC) > endWhenNsec) {
+        //    if (gVerbose) {
+        //        printf("Time limit reached\n");
+        //        fflush(stdout);
+        //    }
+        //    break;
+        //}
 
         ALOGV("Calling dequeueOutputBuffer");
         err = encoder->dequeueOutputBuffer(&bufIndex, &offset, &size, &ptsUsec,
