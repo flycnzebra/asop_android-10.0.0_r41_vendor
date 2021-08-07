@@ -68,7 +68,7 @@ private:
 
 	Mutex mLock;
 	std::vector<int32_t> thread_sockets;
-	std::vector<client_connect> work_sockets;
+	std::vector<client_connect> conn_sockets;
 	std::vector<unsigned char> sps_pps;
 	sp<ScreenDisplay> mScreenDisplay;
 
