@@ -19,7 +19,7 @@ public:
 private:
 	static void *_run_record(void *arg);
     bool isRunning = false;
-    sp<AMessage> mNotify = nullptr;
+    sp<AMessage> mNotify;
 };
 
 }; // namespace android

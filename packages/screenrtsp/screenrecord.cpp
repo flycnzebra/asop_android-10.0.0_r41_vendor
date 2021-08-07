@@ -589,8 +589,8 @@ static status_t recordScreen(sp<AMessage> notify) {
     status_t err;
 
     // Configure signal handler.
-    err = configureSignals();
-    if (err != NO_ERROR) return err;
+    //err = configureSignals();
+    //if (err != NO_ERROR) return err;
 
     // Start Binder thread pool.  MediaCodec needs to be able to receive
     // messages from mediaserver.

@@ -25,7 +25,6 @@ cc_binary {
         "RtspServer.cpp",
         "ScreenDisplay.cpp",
         "ScreenRtsp.cpp",
-        "ParsedMessage.cpp",
         "Base64.cpp",
     ],
 
@@ -57,7 +56,7 @@ cc_binary {
         "-Wno-multichar",
         "-Wno-unused-parameter",
         "-Wno-unused-variable",
-        "-Wno-unused-function"
+        "-Wno-unused-function",
         //"-UNDEBUG",
     ]
 }
