@@ -434,7 +434,7 @@ status_t RtspServer::onOtherRequest(const char* data, int32_t socket_fd, int32_t
 
 void RtspServer::sendSPSPPS(const unsigned char* sps_pps, int32_t size, int64_t ptsUsec)
 {
-    serialnumber++;
+    sequencenumber++;
     char rtp_pack[16 + size];
     rtp_pack[0] = '$';
     rtp_pack[1] = 0x01;
@@ -442,8 +442,8 @@ void RtspServer::sendSPSPPS(const unsigned char* sps_pps, int32_t size, int64_t 
     rtp_pack[3] = (size+12) & 0xFF;
     rtp_pack[4] = 0x80;
     rtp_pack[5] = 0x60;
-    rtp_pack[6] = (serialnumber & 0xFF00) >> 8;
-    rtp_pack[7] = serialnumber & 0xFF;
+    rtp_pack[6] = (sequencenumber & 0xFF00) >> 8;
+    rtp_pack[7] = sequencenumber & 0xFF;
     rtp_pack[8]  = (ptsUsec & 0xFF000000) >> 24;
     rtp_pack[9]  = (ptsUsec & 0xFF0000) >> 16;
     rtp_pack[10] = (ptsUsec & 0xFF00) >> 8;
@@ -472,7 +472,7 @@ void RtspServer::sendVFrame(const unsigned char* frame, int32_t size, int64_t pt
     }
     int32_t fau_num = 1280 - 18;
     if(size <= fau_num){
-        serialnumber++;
+        sequencenumber++;
         char rtp_pack[16 + size];
         rtp_pack[0]  = '$';
         rtp_pack[1]  = 0x01;
@@ -480,8 +480,8 @@ void RtspServer::sendVFrame(const unsigned char* frame, int32_t size, int64_t pt
         rtp_pack[3]  = (size+12) & 0xFF;
         rtp_pack[4]  = 0x80;
         rtp_pack[5]  = 0x60;
-        rtp_pack[6]  = (serialnumber & 0xFF00) >> 8;
-        rtp_pack[7]  = serialnumber & 0xFF;
+        rtp_pack[6]  = (sequencenumber & 0xFF00) >> 8;
+        rtp_pack[7]  = sequencenumber & 0xFF;
         rtp_pack[8]  = (ptsUsec & 0xFF000000) >> 24;
         rtp_pack[9]  = (ptsUsec & 0xFF0000) >> 16;
         rtp_pack[10] = (ptsUsec & 0xFF00) >> 8;
@@ -506,7 +506,7 @@ void RtspServer::sendVFrame(const unsigned char* frame, int32_t size, int64_t pt
             bool first = (num==0);
             bool last = ((size -1 - num * fau_num)<=fau_num);
             int32_t rtpsize = last?(size -1 - num * fau_num) : fau_num;
-            serialnumber++;
+            sequencenumber++;
             char rtp_pack[18 + rtpsize];
             rtp_pack[0]  = '$';
             rtp_pack[1]  = 0x01;
@@ -514,8 +514,8 @@ void RtspServer::sendVFrame(const unsigned char* frame, int32_t size, int64_t pt
             rtp_pack[3]  = (rtpsize+14) & 0xFF;
             rtp_pack[4]  = 0x80;
             rtp_pack[5]  = 0x60;
-            rtp_pack[6]  = (serialnumber & 0xFF00) >> 8;
-            rtp_pack[7]  = serialnumber & 0xFF;
+            rtp_pack[6]  = (sequencenumber & 0xFF00) >> 8;
+            rtp_pack[7]  = sequencenumber & 0xFF;
             rtp_pack[8]  = (ptsUsec & 0xFF000000) >> 24;
             rtp_pack[9]  = (ptsUsec & 0xFF0000) >> 16;
             rtp_pack[10] = (ptsUsec & 0xFF00) >> 8;

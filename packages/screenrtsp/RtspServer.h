@@ -72,7 +72,7 @@ private:
 	std::vector<unsigned char> sps_pps;
 	sp<ScreenDisplay> mScreenDisplay;
 
-	int32_t serialnumber = 0;
+	int32_t sequencenumber = 0;
 	int32_t rtp_socket;
 	int32_t rtcp_socket;
 	
