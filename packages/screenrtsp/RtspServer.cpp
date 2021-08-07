@@ -61,7 +61,6 @@ void RtspServer::onMessageReceived(const sp<AMessage> &msg){
 }
 
 void RtspServer::start(){
-    FLOGE("RtspServer start");
     sp<AMessage> notify = new AMessage(kWhatMediaNotify, this);
     mScreenDisplay = new ScreenDisplay(notify);
     sp<AMessage> msg = new AMessage(kWhatStart, this);
@@ -148,19 +147,19 @@ void *RtspServer::_rtpudp_socket(void *argv){
     signal(SIGPIPE, SIG_IGN);
     auto *p=(RtspServer *)argv;
     int32_t socket_fd = p->rtp_socket;
-    char recvBuf[1024];
+    char recvBuf[4096];
     int32_t addr_len;
     int32_t recvLen = -1;
     struct sockaddr_in addr_client;
     while(!p->isStoped){
-        memset(recvBuf,0, 1024);
-        int32_t recvLen = recvfrom(socket_fd, recvBuf, 1024, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
+        memset(recvBuf,0, 4096);
+        int32_t recvLen = recvfrom(socket_fd, recvBuf, 4096, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
         if(recvLen > 0){
-            char temp[1024] = {0};
+            char temp[4096] = {0};
             for (int32_t i = 0; i < recvLen; i++) {
                 sprintf(temp, "%s%02x:", temp, recvBuf[i]);
             }
-            FLOGE("rtp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
+            //FLOGE("rtp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
         }else{
             FLOGE("rtp_recv:len=[%d],errno=[%d].", recvLen, errno);
         }
@@ -174,19 +173,19 @@ void *RtspServer::_rtcpudp_socket(void *argv){
     signal(SIGPIPE, SIG_IGN);
     auto *p=(RtspServer *)argv;
     int32_t socket_fd = p->rtcp_socket;
-    char recvBuf[1024];
+    char recvBuf[4096];
     int32_t addr_len;
     int32_t recvLen = -1;
     struct sockaddr_in addr_client;
     while(!p->isStoped){
-        memset(recvBuf,0, 1024);
+        memset(recvBuf,0, 4096);
         int32_t recvLen = recvfrom(socket_fd, recvBuf, 1024, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
         if(recvLen > 0){
-            char temp[1024] = {0};
+            char temp[4096] = {0};
             for (int32_t i = 0; i < recvLen; i++) {
                 sprintf(temp, "%s%02x:", temp, recvBuf[i]);
             }
-            FLOGE("rtcp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
+            //FLOGE("rtcp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
         }else{
             FLOGE("rtcp_recv:len=[%d],errno=[%d].", recvLen, errno);
         }
