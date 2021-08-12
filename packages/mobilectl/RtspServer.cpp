@@ -52,7 +52,7 @@ void RtspServer::onMessageReceived(const sp<AMessage> &msg){
 		    handleClientSocketExit(msg);
 		    break;
 		case kWhatSocketRecvData:
-			handleSocketRecv(msg);
+			handleSocketRecvData(msg);
 			break;
 		case kWhatMediaNotify:
 			handleMediaNotify(msg);
@@ -146,19 +146,20 @@ void *RtspServer::_rtpudp_socket(void *argv){
     signal(SIGPIPE, SIG_IGN);
     auto *p=(RtspServer *)argv;
     int32_t socket_fd = p->rtp_socket;
-    char recvBuf[4096];
+    char recvBuf[1024];
+    char temp[4096];
     int32_t addr_len;
     int32_t recvLen = -1;
     struct sockaddr_in addr_client;
     while(!p->isStoped){
-        memset(recvBuf,0, 4096);
-        int32_t recvLen = recvfrom(socket_fd, recvBuf, 4096, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
+        memset(recvBuf,0, 1024);
+        int32_t recvLen = recvfrom(socket_fd, recvBuf, 1024, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
         if(recvLen > 0){
-            char temp[4096] = {0};
+            memset(temp,0, 4096);
             for (int32_t i = 0; i < recvLen; i++) {
                 sprintf(temp, "%s%02x:", temp, recvBuf[i]);
             }
-            FLOGD("rtp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
+            //FLOGV("rtp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
         }else{
             FLOGE("rtp_recv:len=[%d],errno=[%d].", recvLen, errno);
         }
@@ -172,19 +173,20 @@ void *RtspServer::_rtcpudp_socket(void *argv){
     signal(SIGPIPE, SIG_IGN);
     auto *p=(RtspServer *)argv;
     int32_t socket_fd = p->rtcp_socket;
-    char recvBuf[4096];
+    char recvBuf[1024];
+    char temp[4096];
     int32_t addr_len;
     int32_t recvLen = -1;
     struct sockaddr_in addr_client;
     while(!p->isStoped){
-        memset(recvBuf,0, 4096);
+        memset(recvBuf, 0, 1024);
         int32_t recvLen = recvfrom(socket_fd, recvBuf, 1024, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
         if(recvLen > 0){
-            char temp[4096] = {0};
+            memset(temp,0, 4096);
             for (int32_t i = 0; i < recvLen; i++) {
                 sprintf(temp, "%s%02x:", temp, recvBuf[i]);
             }
-            FLOGD("rtcp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
+            //FLOGV("rtcp_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
         }else{
             FLOGE("rtcp_recv:len=[%d],errno=[%d].", recvLen, errno);
         }
@@ -264,7 +266,7 @@ void RtspServer::handleClientSocket(const sp<AMessage> &msg)
     }
 }
 
-void RtspServer::handleSocketRecv(const sp<AMessage> &msg)
+void RtspServer::handleSocketRecvData(const sp<AMessage> &msg)
 {
     int32_t socket_fd;
     CHECK(msg->findInt32("socket", &socket_fd));
@@ -345,18 +347,23 @@ status_t RtspServer::onOptionsRequest(const char* data, int32_t socket_fd, int32
 }
 
 status_t RtspServer::onDescribeRequest(const char* data, int32_t socket_fd, int32_t cseq) {
+    struct sockaddr_in addr;
+    socklen_t addrlen = sizeof(addr);
+    getsockname(socket_fd, (struct sockaddr *)&addr, &addrlen);
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq);
     AString spd;
     spd.append("v=0\r\n");
-    spd.append("o=- 1627453750119587 1 in IP4 0.0.0.0\r\n");
+    char temp[128];
+    sprintf(temp, "o=- 1627453750119587 1 in IP4 %s\r\n",inet_ntoa(addr.sin_addr));
+    spd.append(temp);
     spd.append("t=0 0\r\n");
     spd.append("a=contol:*\r\n");
     spd.append("m=video 0 RTP/AVP 96\r\n");
     spd.append("a=rtpmap:96 H264/90020\r\n");
     //spd.append("a=fmtp:96 profile-level-id=420010;packetization-mode=1;sprop-parameter-sets=Z0KAFtoGQW/llIKDAwNoUJqA,aM4G4g==\r\n");
     spd.append("a=control:track1\r\n\r\n");
-    char temp[128];
+    memset(temp,0,strlen(temp));
     sprintf(temp, "Content-Length: %d\r\n",(int)spd.size());
     response.append(temp);
     response.append("Content-Type: application/sdp\r\n");
@@ -369,7 +376,7 @@ status_t RtspServer::onDescribeRequest(const char* data, int32_t socket_fd, int3
 
 status_t RtspServer::onSetupRequest(const char* data, int32_t socket_fd, int32_t cseq)
 {
-    struct client_connect conn;
+    struct client_conn conn;
     conn.socket = socket_fd;
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq);
@@ -407,6 +414,14 @@ status_t RtspServer::onSetupRequest(const char* data, int32_t socket_fd, int32_t
     response.append(temp);
     response.append("\r\n");
     conn.status = S_SETUP;
+    //不能重复添加
+    int32_t size = conn_sockets.empty()?0:((int)conn_sockets.size());
+    for(int32_t i=0;i<size;i++){
+        if(conn_sockets[i].socket == socket_fd){
+            conn_sockets.erase(conn_sockets.begin()+i);
+            break;
+        }
+    }
     conn_sockets.push_back(conn);
     send(socket_fd,response.c_str(),response.size(),0);
     FLOGD("send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
@@ -483,9 +498,9 @@ void RtspServer::sendSPSPPS(const unsigned char* sps_pps, int32_t size, int64_t 
             sendLen = sendto(rtp_socket, rtp_pack+4, 12+size, 0, (struct sockaddr*)&conn_sockets[i].addr_in, conn_sockets[i].addrLen);
         }
         if(sendLen<0) {
-            FLOGE("SEND SPS_[%d][%d] error!", sendLen,12+size);
+            FLOGE("SEND SPS_[%d][%d] error!", sendLen, 12+size);
         }else{
-            FLOGD("SEND SPS_[%d][%d][%ld]!", sendLen,12+size,ptsUsec);
+            FLOGD("SEND SPS_[%d][%d][ptsUsec=%ld]!", sendLen, 12+size, ptsUsec);
         }
     }
 }

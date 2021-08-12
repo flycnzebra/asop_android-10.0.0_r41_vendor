@@ -8,7 +8,6 @@
 #include <binder/IPCThreadState.h>
 #include <media/stagefright/foundation/AHandler.h>
 #include <media/stagefright/foundation/AMessage.h>
-#include <vector>
 #include <arpa/inet.h>
 #include "ScreenDisplay.h"
 
@@ -24,16 +23,6 @@ enum {
     S_PLAY,
 };
 
-struct client_connect {
-      int32_t socket;
-      int32_t type;
-      int32_t rtp_port;
-      int32_t rtcp_port;
-      struct sockaddr_in addr_in;
-      socklen_t addrLen;
-      int32_t status;
-};
-
 class RtspServer : public AHandler {
 public:
     RtspServer();
@@ -47,7 +36,7 @@ private:
 
     void handleStart(const sp<AMessage> &msg);
     void handleClientSocket(const sp<AMessage> &msg);
-    void handleSocketRecv(const sp<AMessage> &msg);
+    void handleSocketRecvData(const sp<AMessage> &msg);
     void handleMediaNotify(const sp<AMessage> &msg);
     void handleClientSocketExit(const sp<AMessage> &msg);
 
@@ -66,16 +55,25 @@ private:
 	void sendSPSPPS(const unsigned char* data, int32_t size, int64_t ptsUsec);
     void sendVFrame(const unsigned char* data, int32_t size, int64_t ptsUsec);
 
+    struct client_conn {
+          int32_t socket;
+          int32_t type;
+          int32_t rtp_port;
+          int32_t rtcp_port;
+          struct sockaddr_in addr_in;
+          socklen_t addrLen;
+          int32_t status;
+    };
+
 	Mutex mLock;
 	std::vector<int32_t> thread_sockets;
-	std::vector<client_connect> conn_sockets;
+	std::vector<client_conn> conn_sockets;
 	std::vector<unsigned char> sps_pps;
 	sp<ScreenDisplay> mScreenDisplay;
 
 	int32_t sequencenumber = 0;
 	int32_t rtp_socket;
 	int32_t rtcp_socket;
-	
 	bool isStoped = false;
 };
 
