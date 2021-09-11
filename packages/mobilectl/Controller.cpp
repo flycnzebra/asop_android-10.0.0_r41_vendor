@@ -4,6 +4,7 @@
 
 #include <errno.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <netinet/in.h>
 
 #include <media/stagefright/foundation/ABuffer.h>
@@ -13,6 +14,7 @@
 #include "HandlerEvent.h"
 #include "FlyLog.h"
 #include "input.h"
+#include "config.h"
 
 using namespace android;
 
@@ -26,54 +28,83 @@ Controller::~Controller()
 
 void Controller::start()
 {
-    pthread_t init_socket_tid;
+    FLOGD("Controller::start()");
+    is_stop = false;
+    int32_t key_fd = open("/dev/input/event0",O_RDWR);
+    int32_t touch_fd = open("/dev/input/event2",O_RDWR);
     int32_t ret = pthread_create(&init_socket_tid, nullptr, _controller_socket, (void *) this);
     if (ret != 0) {
     	FLOGE("create controller socket thread error!");
-    	exit(-1);
     }
+}
+
+void Controller::stop()
+{
+    is_stop = true;
+    close(key_fd);
+    close(touch_fd);
+    if(server_socket >= 0){
+        close(server_socket);
+        server_socket = -1;
+        //try connect once for exit accept block
+        int32_t socket_temp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        struct sockaddr_in servaddr;
+        memset(&servaddr, 0, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_port = htons(CONTROLLER_TCP_PORT);
+        servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        connect(socket_temp, (struct sockaddr *) &servaddr, sizeof(servaddr));
+        close(socket_temp);
+    }else{
+       close(server_socket);
+       server_socket = -1;
+    }
+    pthread_join(init_socket_tid, nullptr);
+    FLOGD("Controller::stop()");
 }
 
 void *Controller::_controller_socket(void *argv)
 {
-	FLOGE("_controller_socket start!");
+	FLOGD("controller_socket start!");
+	auto *p=(Controller *)argv;
     struct sockaddr_in t_sockaddr;
     memset(&t_sockaddr, 0, sizeof(t_sockaddr));
     t_sockaddr.sin_family = AF_INET;
     t_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    t_sockaddr.sin_port = htons(9008);
-    int32_t server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket < 0) {
+    t_sockaddr.sin_port = htons(CONTROLLER_TCP_PORT);
+    p->server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (p->server_socket < 0) {
         FLOGE("socket error %s errno: %d", strerror(errno), errno);
         return 0;
     }
-    int32_t ret = bind(server_socket,(struct sockaddr *) &t_sockaddr,sizeof(t_sockaddr));
+    int32_t ret = bind(p->server_socket,(struct sockaddr *) &t_sockaddr,sizeof(t_sockaddr));
     if (ret < 0) {
-        FLOGE( "bind socket error %s errno: %d", strerror(errno), errno);
+        FLOGE( "bind %d socket error %s errno: %d",CONTROLLER_TCP_PORT, strerror(errno), errno);
         return 0;
     }
-    ret = listen(server_socket, 5);
+    ret = listen(p->server_socket, 5);
     if (ret < 0) {
         FLOGE("listen error %s errno: %d", strerror(errno), errno);
     }
-    for(;;) {
-        int32_t client_socket = accept(server_socket, (struct sockaddr*)NULL, NULL);
+    while(!p->is_stop) {
+        int32_t client_socket = accept(p->server_socket, (struct sockaddr*)NULL, NULL);
         if(client_socket < 0) {
             FLOGE("accpet socket error: %s errno :%d", strerror(errno), errno);
             continue;
         }
+        if(p->is_stop) break;
 		sp<AMessage> msg = new AMessage(kWhatClientSocket, (Controller *) argv);
 		msg->setInt32("socket", client_socket);
 		msg->post();
     }
-    close(server_socket);
-    server_socket = -1;
-    FLOGE("_controller_socket exit!");
+    close(p->server_socket);
+    p->server_socket = -1;
+    FLOGD("controller_socket exit!");
 	return 0;
 }
 
 void *Controller::_controller_client_socket(void *argv){
-    FLOGE("_controller_client_socket start!");
+    FLOGD("controller_client_socket start!");
     signal(SIGPIPE, SIG_IGN);
     auto *p=(Controller *)argv;
     int32_t socket_fd;
@@ -84,12 +115,12 @@ void *Controller::_controller_client_socket(void *argv){
 	}
 	char recvBuf[1024];
     int32_t recvLen = -1;
-    int32_t key_fd = open("/dev/input/event0",O_RDWR);
-    int32_t touch_fd = open("/dev/input/event2",O_RDWR);
-	while(!p->isStoped){
+    int32_t key_fd = p->key_fd;
+    int32_t touch_fd = p->touch_fd;
+	while(!p->is_stop){
 	    memset(recvBuf,0,1024);
 	    recvLen = recv(socket_fd, recvBuf, 1024, 0);
-	    FLOGD("sever_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, recvBuf);
+	    FLOGD("Controller sever_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, recvBuf);
         if (recvLen <= 0) {
             sp<AMessage> msg = new AMessage(kWhatClientSocketExit, (Controller *) argv);
             msg->setInt32("socket", socket_fd);
@@ -97,11 +128,11 @@ void *Controller::_controller_client_socket(void *argv){
             close(socket_fd);
             break;
         }else {
-            char temp[4096] = {0};
-            for (int32_t i = 0; i < recvLen; i++) {
-                sprintf(temp, "%s%02x:", temp, recvBuf[i]);
-            }
-            FLOGE("keyevent_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
+            //char temp[4096] = {0};
+            //for (int32_t i = 0; i < recvLen; i++) {
+            //    sprintf(temp, "%s%02x:", temp, recvBuf[i]);
+            //}
+            //FLOGE("keyevent_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
             switch (recvBuf[0]){
                 //HOME 键
                 case 0x00:
@@ -146,9 +177,7 @@ void *Controller::_controller_client_socket(void *argv){
             }
         }
 	}
-	close(key_fd);
-	close(touch_fd);
-	FLOGE("_controller_client_socket exit!");
+	FLOGD("controller_client_socket exit!");
 	return 0;
 }
 
@@ -174,8 +203,9 @@ void Controller::handleClientSocket(const sp<AMessage> &msg)
     thread_sockets.push_back(socket_fd);
     pthread_t client_socket_tid;
     int32_t ret = pthread_create(&client_socket_tid, nullptr, _controller_client_socket, (void *)this);
+    pthread_detach(client_socket_tid);
     if (ret != 0) {
-    	FLOGE("create client socket thread error!");
+    	FLOGE("Controller create client socket thread error!");
     	thread_sockets.pop_back();
     }
 }

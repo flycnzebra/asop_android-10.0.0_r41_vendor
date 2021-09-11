@@ -16,17 +16,20 @@
 #include "FlyLog.h"
 #include "Base64.h"
 #include "HandlerEvent.h"
+#include "config.h"
 
 using namespace android;
 
-RtspServer::RtspServer(){
+RtspServer::RtspServer()
+{
 }
 
 RtspServer::~RtspServer()
 {
 }
 
-void RtspServer::AppendCommonResponse(AString *response, int32_t cseq) {
+void RtspServer::AppendCommonResponse(AString *response, int32_t cseq)
+{
     char temp[16];
     sprintf(temp, "CSeq: %d\r\n",cseq);
     response->append(temp);
@@ -40,7 +43,8 @@ void RtspServer::AppendCommonResponse(AString *response, int32_t cseq) {
     response->append("\r\n");
 }
 
-void RtspServer::onMessageReceived(const sp<AMessage> &msg){
+void RtspServer::onMessageReceived(const sp<AMessage> &msg)
+{
     switch (msg->what()) {
         case kWhatStart:            
             handleStart(msg);
@@ -60,55 +64,94 @@ void RtspServer::onMessageReceived(const sp<AMessage> &msg){
     }
 }
 
-void RtspServer::start(){
+void RtspServer::start()
+{
+    FLOGD("RtspServer::start()");
+    is_stop = false;
+
     sp<AMessage> notify = new AMessage(kWhatMediaNotify, this);
+
+    mAudioEncoder = new AudioEncoder(notify);
+    mAudioEncoder->start();
     mScreenDisplay = new ScreenDisplay(notify);
+
     sp<AMessage> msg = new AMessage(kWhatStart, this);
     msg->post();
 }
 
-void *RtspServer::_server_socket(void *argv){
-	FLOGE("_server_socket start!");
+void RtspServer::stop()
+{
+    mAudioEncoder->stop();
+    mScreenDisplay->stopRecord();
+    is_stop = true;
+    close(rtp_socket);
+    close(rtcp_socket);
+    if(server_socket >= 0){
+        close(server_socket);
+        server_socket = -1;
+        //try connect once for exit accept block
+        int32_t socket_temp = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        struct sockaddr_in servaddr;
+        memset(&servaddr, 0, sizeof(servaddr));
+        servaddr.sin_family = AF_INET;
+        servaddr.sin_port = htons(RTSP_SERVER_TCP_PORT);
+        servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+        connect(socket_temp, (struct sockaddr *) &servaddr, sizeof(servaddr));
+        close(socket_temp);
+    }else{
+       close(server_socket);
+       server_socket = -1;
+    }
+    pthread_join(init_socket_tid, nullptr);
+    FLOGD("RtspServer::stop()");
+}
+
+void *RtspServer::_server_socket(void *argv)
+{
+	FLOGD("RtspServer server_socket start!");
+	auto *p=(RtspServer *)argv;
 	//Bind TCP SOCKET
     struct sockaddr_in t_sockaddr;
     memset(&t_sockaddr, 0, sizeof(t_sockaddr));
     t_sockaddr.sin_family = AF_INET;
     t_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    t_sockaddr.sin_port = htons(554);
+    t_sockaddr.sin_port = htons(RTSP_SERVER_TCP_PORT);
 
-    int32_t server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_socket < 0) {
+    p->server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (p->server_socket < 0) {
         FLOGE("socket error %s errno: %d", strerror(errno), errno);
         return 0;
     }
 
-    int32_t ret = bind(server_socket,(struct sockaddr *) &t_sockaddr,sizeof(t_sockaddr));
+    int32_t ret = bind(p->server_socket,(struct sockaddr *) &t_sockaddr,sizeof(t_sockaddr));
     if (ret < 0) {
-        FLOGE( "bind socket error %s errno: %d", strerror(errno), errno);
+        FLOGE( "bind %d socket error %s errno: %d", RTSP_SERVER_TCP_PORT,strerror(errno), errno);
         return 0;
     }
-    ret = listen(server_socket, 5);
+    ret = listen(p->server_socket, 5);
     if (ret < 0) {
         FLOGE("listen error %s errno: %d", strerror(errno), errno);
     }
-    for(;;) {
-        int32_t client_socket = accept(server_socket, (struct sockaddr*)NULL, NULL);
+    while(!p->is_stop) {
+        int32_t client_socket = accept(p->server_socket, (struct sockaddr*)NULL, NULL);
         if(client_socket < 0) {
             FLOGE("accpet socket error: %s errno :%d", strerror(errno), errno);
             continue;
         }
+        if(p->is_stop) break;
 		sp<AMessage> msg = new AMessage(kWhatClientSocket, (RtspServer *) argv);
 		msg->setInt32("socket", client_socket);
 		msg->post();
     }
-    close(server_socket);
-    server_socket = -1;
-    FLOGE("_server_socket exit!");
+    close(p->server_socket);
+    p->server_socket = -1;
+    FLOGD("RtspServer server_socket exit!");
 	return 0;
 }
 
-void *RtspServer::_client_socket(void *argv){
-    FLOGE("_client_socket start!");
+void *RtspServer::_client_socket(void *argv)
+{
+    FLOGD("RtspServer client_socket start!");
     signal(SIGPIPE, SIG_IGN);
     auto *p=(RtspServer *)argv;
     int32_t socket_fd;
@@ -119,10 +162,10 @@ void *RtspServer::_client_socket(void *argv){
 	}
 	char recvBuf[1024];
     int32_t recvLen = -1;
-	while(!p->isStoped){
+	while(!p->is_stop){
 	    memset(recvBuf,0,1024);
 	    recvLen = recv(socket_fd, recvBuf, 1024, 0);
-	    FLOGD("sever_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, recvBuf);
+	    FLOGD("RtspServer sever_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, recvBuf);
         if (recvLen <= 0) {
             sp<AMessage> msg = new AMessage(kWhatClientSocketExit, (RtspServer *) argv);
             msg->setInt32("socket", socket_fd);
@@ -137,12 +180,13 @@ void *RtspServer::_client_socket(void *argv){
             msg->post();
         }
 	}
-	FLOGE("_client_socket exit!");
+	FLOGD("RtspServer client_socket exit!");
 	return 0;
 }
 
-void *RtspServer::_rtpudp_socket(void *argv){
-    FLOGE("_rtp_socket start!");
+void *RtspServer::_rtpudp_socket(void *argv)
+{
+    FLOGD("RtspServer rtp_socket start!");
     signal(SIGPIPE, SIG_IGN);
     auto *p=(RtspServer *)argv;
     int32_t socket_fd = p->rtp_socket;
@@ -151,7 +195,7 @@ void *RtspServer::_rtpudp_socket(void *argv){
     int32_t addr_len;
     int32_t recvLen = -1;
     struct sockaddr_in addr_client;
-    while(!p->isStoped){
+    while(!p->is_stop){
         memset(recvBuf,0, 1024);
         int32_t recvLen = recvfrom(socket_fd, recvBuf, 1024, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
         if(recvLen > 0){
@@ -164,12 +208,13 @@ void *RtspServer::_rtpudp_socket(void *argv){
             FLOGE("rtp_recv:len=[%d],errno=[%d].", recvLen, errno);
         }
     }
-    FLOGE("_rtp_socket exit!");
+    FLOGD("RtspServer rtp_socket exit!");
     return 0;
 }
 
-void *RtspServer::_rtcpudp_socket(void *argv){
-    FLOGE("_rtcp_socket start!");
+void *RtspServer::_rtcpudp_socket(void *argv)
+{
+    FLOGD("RtspServer rtcp_socket start!");
     signal(SIGPIPE, SIG_IGN);
     auto *p=(RtspServer *)argv;
     int32_t socket_fd = p->rtcp_socket;
@@ -178,7 +223,7 @@ void *RtspServer::_rtcpudp_socket(void *argv){
     int32_t addr_len;
     int32_t recvLen = -1;
     struct sockaddr_in addr_client;
-    while(!p->isStoped){
+    while(!p->is_stop){
         memset(recvBuf, 0, 1024);
         int32_t recvLen = recvfrom(socket_fd, recvBuf, 1024, 0, (struct sockaddr *)&addr_client, (socklen_t *)&addr_len);
         if(recvLen > 0){
@@ -191,13 +236,15 @@ void *RtspServer::_rtcpudp_socket(void *argv){
             FLOGE("rtcp_recv:len=[%d],errno=[%d].", recvLen, errno);
         }
     }
-    FLOGE("_rtcp_socket exit!");
+    FLOGD("RtspServer rtcp_socket exit!");
     return 0;
 }
 
 void RtspServer::handleStart(const sp<AMessage> &msg)
 {
+    int32_t ret;
     //Bind UDP 1 SOCKET
+    /*
     rtp_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if(rtp_socket < 0) {
        FLOGE("RTP udp socket error %s errno: %d", strerror(errno), errno);
@@ -208,7 +255,7 @@ void RtspServer::handleStart(const sp<AMessage> &msg)
     addr_serv1.sin_family = AF_INET;//使用IPV4地址
     addr_serv1.sin_port = htons(9002);//端口
     addr_serv1.sin_addr.s_addr = htonl(INADDR_ANY);//自动获取IP地址
-    int32_t ret = bind(rtp_socket, (struct sockaddr *)&addr_serv1, sizeof(addr_serv1));
+    ret = bind(rtp_socket, (struct sockaddr *)&addr_serv1, sizeof(addr_serv1));
     if(ret < 0){
       FLOGE( "bind RTP udp socket error %s errno: %d", strerror(errno), errno);
       exit(-1);
@@ -242,9 +289,9 @@ void RtspServer::handleStart(const sp<AMessage> &msg)
     	FLOGE("create RTCP udp socket thread error!");
     	exit(-1);
     }
+    */
 
     //TCP 554 socket
-    pthread_t init_socket_tid;
     ret = pthread_create(&init_socket_tid, nullptr, _server_socket, (void *) this);
     if (ret != 0) {
     	FLOGE("create rtsp socket thread error!");
@@ -260,8 +307,9 @@ void RtspServer::handleClientSocket(const sp<AMessage> &msg)
     thread_sockets.push_back(socket_fd);
     pthread_t client_socket_tid;
     int32_t ret = pthread_create(&client_socket_tid, nullptr, _client_socket, (void *)this);
+    pthread_detach(client_socket_tid);
     if (ret != 0) {
-    	FLOGE("create client socket thread error!");
+    	FLOGE("RtspServer create client socket thread error!");
     	thread_sockets.pop_back();
     }
 }
@@ -295,7 +343,8 @@ void RtspServer::handleSocketRecvData(const sp<AMessage> &msg)
     }
 }
 
-void RtspServer::handleMediaNotify(const sp<AMessage> &msg){
+void RtspServer::handleMediaNotify(const sp<AMessage> &msg)
+{
     int32_t type;
     CHECK(msg->findInt32("type", &type));
     switch (type) {
@@ -318,11 +367,19 @@ void RtspServer::handleMediaNotify(const sp<AMessage> &msg){
             }
             break;
         case kWhatAudioFrameData:
+            {
+                sp<ABuffer> data;
+                CHECK(msg->findBuffer("data", &data));
+                int64_t ptsUsec;
+                CHECK(msg->findInt64("ptsUsec", &ptsUsec));
+                sendAFrame(data->data(), data->capacity(), ptsUsec);
+            }
             break;
     }
 }
 
-void RtspServer::handleClientSocketExit(const sp<AMessage> &msg){
+void RtspServer::handleClientSocketExit(const sp<AMessage> &msg)
+{
     int32_t socket_fd;
     CHECK(msg->findInt32("socket", &socket_fd));
     int32_t size = conn_sockets.empty()?0:((int)conn_sockets.size());
@@ -333,20 +390,26 @@ void RtspServer::handleClientSocketExit(const sp<AMessage> &msg){
         }
     }
     FLOGD("conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
-    if(conn_sockets.empty()) mScreenDisplay->stopRecord();
+    if(conn_sockets.empty()) {
+        has_client = false;
+        mScreenDisplay->stopRecord();
+        mAudioEncoder->stopRecord();
+    }
 }
 
-status_t RtspServer::onOptionsRequest(const char* data, int32_t socket_fd, int32_t cseq) {
+status_t RtspServer::onOptionsRequest(const char* data, int32_t socket_fd, int32_t cseq)
+{
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq);
     response.append("Public: OPTIONS, DESCRIBE, SETUP, TEARDOWN, PLAY, PAUSE, GET_PARAMETER, SET_PARAMETER\r\n");
     response.append("\r\n");
     send(socket_fd,response.c_str(),response.size(),0);
-    FLOGD("send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
+    FLOGD("RtspServer send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
     return 0;
 }
 
-status_t RtspServer::onDescribeRequest(const char* data, int32_t socket_fd, int32_t cseq) {
+status_t RtspServer::onDescribeRequest(const char* data, int32_t socket_fd, int32_t cseq)
+{
     struct sockaddr_in addr;
     socklen_t addrlen = sizeof(addr);
     getsockname(socket_fd, (struct sockaddr *)&addr, &addrlen);
@@ -359,10 +422,35 @@ status_t RtspServer::onDescribeRequest(const char* data, int32_t socket_fd, int3
     spd.append(temp);
     spd.append("t=0 0\r\n");
     spd.append("a=contol:*\r\n");
+
     spd.append("m=video 0 RTP/AVP 96\r\n");
-    spd.append("a=rtpmap:96 H264/90020\r\n");
-    //spd.append("a=fmtp:96 profile-level-id=420010;packetization-mode=1;sprop-parameter-sets=Z0KAFtoGQW/llIKDAwNoUJqA,aM4G4g==\r\n");
-    spd.append("a=control:track1\r\n\r\n");
+    spd.append("a=rtpmap:96 H264/90000\r\n");
+    //spd.append("a=fmtp:96 profile-level-id=1;packetization-mode=1;sprop-parameter-sets=Z0KAFtoGQW/llIKDAwNoUJqA,aM4G4g==\r\n");
+    spd.append("a=control:track1\r\n");
+
+    //spd.append("m=audio 0 RTP/AVP 98\r\n");
+    //spd.append("a=rtpmap:98 L16/16000/2\r\n");
+    //1190(48000-2) 1210(44100-2) 1410(16000-2)
+    spd.append("m=audio 0 RTP/AVP 97\r\n");
+    switch (OUT_SAMPLE_RATE){
+        case 48000:
+            spd.append("a=rtpmap:97 mpeg4-generic/48000/2\r\n");
+            spd.append("a=fmtp:97 streamtype=5;profile-level-id=1;mode=AAC-hbr;");
+            spd.append("sizelength=13;indexlength=3;indexdeltalength=3;config=1190\r\n");
+            break;
+        case 44100:
+            spd.append("a=rtpmap:97 mpeg4-generic/44100/2\r\n");
+            spd.append("a=fmtp:97 streamtype=5;profile-level-id=1;mode=AAC-hbr;");
+            spd.append("sizelength=13;indexlength=3;indexdeltalength=3;config=1210\r\n");
+            break;
+        default:
+            spd.append("a=rtpmap:97 mpeg4-generic/16000/2\r\n");
+            spd.append("a=fmtp:97 streamtype=5;profile-level-id=1;mode=AAC-hbr;");
+            spd.append("sizelength=13;indexlength=3;indexdeltalength=3;config=1410\r\n");
+            break;
+    }
+    spd.append("a=control:track2\r\n\r\n");
+
     memset(temp,0,strlen(temp));
     sprintf(temp, "Content-Length: %d\r\n",(int)spd.size());
     response.append(temp);
@@ -370,7 +458,7 @@ status_t RtspServer::onDescribeRequest(const char* data, int32_t socket_fd, int3
     response.append("\r\n");
     response.append(spd.c_str());
     send(socket_fd,response.c_str(),response.size(),0);
-    FLOGD("send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
+    FLOGD("RtspServer send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
     return 0;
 }
 
@@ -380,33 +468,30 @@ status_t RtspServer::onSetupRequest(const char* data, int32_t socket_fd, int32_t
     conn.socket = socket_fd;
     AString response = "RTSP/1.0 200 OK\r\n";
     AppendCommonResponse(&response, cseq);
-    char field[16];
+    int32_t track1 = 0;
+    int32_t track2 = 1;
+    const char *temp0 = strstr((const char*)data, "interleaved=");
+    if(temp0!=nullptr){
+        sscanf(temp0, "interleaved=%d-%d", &track1, &track2);
+    }
     if (strncmp(strstr((const char*)data, "RTP/AVP"), "RTP/AVP/TCP", 11) == 0) {
         conn.type = RTP_TCP;
-        response.append("Transport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n");
-    }else if (strncmp(strstr((const char*)data, "RTP/AVP"), "RTP/AVP/UDP", 11) == 0){
+        char temp1[128];
+        sprintf(temp1, "Transport: RTP/AVP/TCP;unicast;interleaved=%d-%d\r\n", track1, track2);
+        response.append(temp1);
+    }else
+    /*if (strncmp(strstr((const char*)data, "RTP/AVP"), "RTP/AVP/UDP", 11) == 0)*/
+    {
         conn.type = RTP_UDP;
-        const char *temp = strstr((const char*)data, "client_port=");
-        if(temp!=nullptr){
-            sscanf(temp, "client_port=%d-%d", &conn.rtp_port, &conn.rtcp_port);
+        const char *temp1 = strstr((const char*)data, "client_port=");
+        if(temp1!=nullptr){
+            sscanf(temp1, "client_port=%d-%d", &conn.rtp_port, &conn.rtcp_port);
         }
         conn.addrLen = sizeof(conn.addr_in);
         getpeername(socket_fd, (struct sockaddr *)&conn.addr_in, (socklen_t*)&conn.addrLen);
         conn.addr_in.sin_port = htons(conn.rtp_port);
         char temp2[128];
-        sprintf(temp2, "Transport: RTP/AVP/UDP;unicast;client_port=%d-%d;server_port=9002-9003;interleaved=0-1\r\n",conn.rtp_port, conn.rtcp_port);
-        response.append(temp2);
-    }else{
-        conn.type = RTP_UDP;
-        const char *temp = strstr((const char*)data, "client_port=");
-        if(temp!=nullptr){
-            sscanf(temp, "client_port=%d-%d", &conn.rtp_port, &conn.rtcp_port);
-        }
-        conn.addrLen = sizeof(conn.addr_in);
-        getpeername(socket_fd, (struct sockaddr *)&conn.addr_in, (socklen_t*)&conn.addrLen);
-        conn.addr_in.sin_port = htons(conn.rtp_port);
-        char temp2[128];
-        sprintf(temp2, "Transport: RTP/AVP;unicast;client_port=%d-%d;server_port=9002-9003;interleaved=0-1\r\n",conn.rtp_port, conn.rtcp_port);
+        sprintf(temp2, "Transport: RTP/AVP/UDP;unicast;client_port=%d-%d;server_port=9002-9003;interleaved=%d-%d\r\n", conn.rtp_port, conn.rtcp_port, track1, track2);
         response.append(temp2);
     }
     char temp[128];
@@ -424,7 +509,7 @@ status_t RtspServer::onSetupRequest(const char* data, int32_t socket_fd, int32_t
     }
     conn_sockets.push_back(conn);
     send(socket_fd,response.c_str(),response.size(),0);
-    FLOGD("send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
+    FLOGD("RtspServer send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
     return 0;
 }
 
@@ -445,10 +530,12 @@ status_t RtspServer::onPlayRequest(const char* data, int32_t socket_fd, int32_t 
     response.append(temp);
     response.append("\r\n");
     send(socket_fd,response.c_str(),response.size(),0);
-    FLOGD("send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
+    FLOGD("RtspServer send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
     FLOGD("conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
+    has_client = true;
     mScreenDisplay->stopRecord();
     mScreenDisplay->startRecord();
+    mAudioEncoder->startRecord();
     return 0;
 }
 
@@ -458,7 +545,7 @@ status_t RtspServer::onGetParameterRequest(const char* data, int32_t socket_fd, 
     AppendCommonResponse(&response, cseq);
     response.append("\r\n");
     send(socket_fd,response.c_str(),response.size(),0);
-    FLOGD("send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
+    FLOGD("RtspServer send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
     return 0;
 }
 
@@ -474,16 +561,16 @@ status_t RtspServer::onOtherRequest(const char* data, int32_t socket_fd, int32_t
 
 void RtspServer::sendSPSPPS(const unsigned char* sps_pps, int32_t size, int64_t ptsUsec)
 {
-    sequencenumber++;
+    sequencenumber1++;
     char rtp_pack[16 + size];
     rtp_pack[0] = '$';
-    rtp_pack[1] = 0x01;
+    rtp_pack[1] = 0x00;
     rtp_pack[2] = ((size+12) & 0xFF00 ) >> 8;
     rtp_pack[3] = (size+12) & 0xFF;
     rtp_pack[4] = 0x80;
     rtp_pack[5] = 0x60;
-    rtp_pack[6] = (sequencenumber & 0xFF00) >> 8;
-    rtp_pack[7] = sequencenumber & 0xFF;
+    rtp_pack[6] = (sequencenumber1 & 0xFF00) >> 8;
+    rtp_pack[7] = sequencenumber1 & 0xFF;
     rtp_pack[8]  = (ptsUsec & 0xFF000000) >> 24;
     rtp_pack[9]  = (ptsUsec & 0xFF0000) >> 16;
     rtp_pack[10] = (ptsUsec & 0xFF00) >> 8;
@@ -492,6 +579,7 @@ void RtspServer::sendSPSPPS(const unsigned char* sps_pps, int32_t size, int64_t 
     int32_t sendLen;
     int32_t vsize = conn_sockets.size();
     for(int32_t i=0; i<vsize; i++){
+        if(!has_client) break;
         if(conn_sockets[i].type==RTP_TCP){
             sendLen = send(conn_sockets[i].socket, rtp_pack, 16+size, 0);
         }else{
@@ -500,37 +588,38 @@ void RtspServer::sendSPSPPS(const unsigned char* sps_pps, int32_t size, int64_t 
         if(sendLen<0) {
             FLOGE("SEND SPS_[%d][%d] error!", sendLen, 12+size);
         }else{
-            FLOGD("SEND SPS_[%d][%d][ptsUsec=%ld]!", sendLen, 12+size, ptsUsec);
+            //FLOGD("SEND SPS_[%d][%d][ptsUsec=%ld]!", sendLen, 12+size, ptsUsec);
         }
     }
 }
 
-void RtspServer::sendVFrame(const unsigned char* frame, int32_t size, int64_t ptsUsec)
+void RtspServer::sendVFrame(const unsigned char* video, int32_t size, int64_t ptsUsec)
 {
-    unsigned char nalu = frame[0];
+    unsigned char nalu = video[0];
     if((nalu&0x1F)==5){
         sendSPSPPS((const unsigned char*)&sps_pps[0], sps_pps.size(), ptsUsec);
     }
     int32_t fau_num = 1280 - 18;
     if(size <= fau_num){
-        sequencenumber++;
+        sequencenumber1++;
         char rtp_pack[16 + size];
         rtp_pack[0]  = '$';
-        rtp_pack[1]  = 0x01;
+        rtp_pack[1]  = 0x00;
         rtp_pack[2]  = ((size+12) & 0xFF00 ) >> 8;
         rtp_pack[3]  = (size+12) & 0xFF;
         rtp_pack[4]  = 0x80;
         rtp_pack[5]  = 0x60;
-        rtp_pack[6]  = (sequencenumber & 0xFF00) >> 8;
-        rtp_pack[7]  = sequencenumber & 0xFF;
+        rtp_pack[6]  = (sequencenumber1 & 0xFF00) >> 8;
+        rtp_pack[7]  = sequencenumber1 & 0xFF;
         rtp_pack[8]  = (ptsUsec & 0xFF000000) >> 24;
         rtp_pack[9]  = (ptsUsec & 0xFF0000) >> 16;
         rtp_pack[10] = (ptsUsec & 0xFF00) >> 8;
         rtp_pack[11] =  ptsUsec & 0xFF;
-        memcpy(rtp_pack+16, frame, size);
+        memcpy(rtp_pack+16, video, size);
         int32_t sendLen;
         int32_t vsize = conn_sockets.size();
         for(int32_t i=0; i<vsize; i++){
+             if(!has_client) break;
             if(conn_sockets[i].type==RTP_TCP){
                 sendLen = send(conn_sockets[i].socket,rtp_pack,16+size,0);
             }else{
@@ -544,34 +633,81 @@ void RtspServer::sendVFrame(const unsigned char* frame, int32_t size, int64_t pt
             bool first = (num==0);
             bool last = ((size -1 - num * fau_num)<=fau_num);
             int32_t rtpsize = last?(size -1 - num * fau_num) : fau_num;
-            sequencenumber++;
+            sequencenumber1++;
             char rtp_pack[18 + rtpsize];
             rtp_pack[0]  = '$';
-            rtp_pack[1]  = 0x01;
+            rtp_pack[1]  = 0x00;
             rtp_pack[2]  = ((rtpsize+14) & 0xFF00 ) >> 8;
             rtp_pack[3]  = (rtpsize+14) & 0xFF;
             rtp_pack[4]  = 0x80;
             rtp_pack[5]  = 0x60;
-            rtp_pack[6]  = (sequencenumber & 0xFF00) >> 8;
-            rtp_pack[7]  = sequencenumber & 0xFF;
+            rtp_pack[6]  = (sequencenumber1 & 0xFF00) >> 8;
+            rtp_pack[7]  = sequencenumber1 & 0xFF;
             rtp_pack[8]  = (ptsUsec & 0xFF000000) >> 24;
             rtp_pack[9]  = (ptsUsec & 0xFF0000) >> 16;
             rtp_pack[10] = (ptsUsec & 0xFF00) >> 8;
             rtp_pack[11] =  ptsUsec & 0xFF;
             rtp_pack[16] =  (nalu&0xE0)|0x1C;
             rtp_pack[17] =  first?(0x80|(nalu&0x1F)):(last?(0x40|(nalu&0x1F)):(nalu&0x1F));
-            memcpy(rtp_pack+18, frame+num*fau_num+1, rtpsize);
+            memcpy(rtp_pack+18, video+num*fau_num+1, rtpsize);
             int32_t sendLen;
             int32_t vsize = conn_sockets.size();
             for(int32_t i=0; i<vsize; i++){
+                if(!has_client) break;
                 if(conn_sockets[i].type==RTP_TCP){
                     sendLen = send(conn_sockets[i].socket,rtp_pack,18+rtpsize,0);
                 }else{
                     sendLen = sendto(rtp_socket, rtp_pack+4, 14+rtpsize, 0, (struct sockaddr*)&conn_sockets[i].addr_in, conn_sockets[i].addrLen);
                 }
-                if(sendLen<0) FLOGE("SEND FU-A[%d][%d][%d][%d] error!", sendLen,rtpsize+14,num,size);
+                if(sendLen<0) FLOGE("SEND FU-A[%d][%d][%d][%d] errno=%d", sendLen,rtpsize+14,num,size,errno);
             }
             num++;
         }
     }
+    //FLOGD("SEND VFrame[ptsUsec=%ld][%d]", ptsUsec, size);
+}
+
+void RtspServer::sendAFrame(const unsigned char* audio, int32_t size, int64_t ptsUsec)
+{
+    int32_t vsize = conn_sockets.size();
+    if(vsize<=0) return;
+    sequencenumber2++;
+    char rtp_pack[20 + size];
+    rtp_pack[0]  = '$';
+    rtp_pack[1]  = 0x02;
+    rtp_pack[2]  = ((size+16) & 0xFF00 ) >> 8;
+    rtp_pack[3]  = (size+16) & 0xFF;
+    rtp_pack[4]  = 0x80;
+    rtp_pack[5]  = 0x61;
+    rtp_pack[6]  = (sequencenumber2 & 0xFF00) >> 8;
+    rtp_pack[7]  = sequencenumber2 & 0xFF;
+    rtp_pack[8]  = (ptsUsec & 0xFF000000) >> 24;
+    rtp_pack[9]  = (ptsUsec & 0xFF0000) >> 16;
+    rtp_pack[10] = (ptsUsec & 0xFF00) >> 8;
+    rtp_pack[11] =  ptsUsec & 0xFF;
+    rtp_pack[16] = 0x00;
+    rtp_pack[17] = 0x10;
+    rtp_pack[18] = ((size+0) & 0x1FE0) >> 5;
+    rtp_pack[19] = ((size+0) & 0x1F) << 3;
+    //rtp_pack[20] = 0xFF;
+    //rtp_pack[21] = 0xF1;
+    //rtp_pack[22] = (1<<6) + (4 << 2) ;
+    //rtp_pack[23] = ((2 & 3) << 6) + ((size+7) >> 11);
+    //rtp_pack[24] = ((size+7) & 0x7ff) >> 3;
+    //rtp_pack[25] = (((size+7) & 0x7) << 5)|0x1F;
+    //rtp_pack[26] = 0xFC;
+    memcpy(rtp_pack+20, audio, size);
+    int32_t sendLen;
+    for(int32_t i=0; i<vsize; i++){
+        if(!has_client) break;
+        if(conn_sockets[i].type==RTP_TCP){
+            sendLen = send(conn_sockets[i].socket, rtp_pack, 20+size, 0);
+        }else{
+            sendLen = sendto(rtp_socket, rtp_pack+4, 16+size, 0, (struct sockaddr*)&conn_sockets[i].addr_in, conn_sockets[i].addrLen);
+        }
+        if(sendLen<0) {
+            FLOGE("SEND AUDIO[%d][%d] errno=%d", sendLen, 20+size, errno);
+        }
+    }
+    //FLOGE("SEND AFrame[ptsUsec=%ld][%d]", ptsUsec, size);
 }

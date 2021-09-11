@@ -10,28 +10,31 @@
 #include <media/stagefright/foundation/AMessage.h>
 #include <arpa/inet.h>
 #include "ScreenDisplay.h"
+#include "AudioEncoder.h"
 
 namespace android {
-
-enum {
-    RTP_TCP,
-    RTP_UDP,
-};
-
-enum {
-    S_SETUP,
-    S_PLAY,
-};
 
 class RtspServer : public AHandler {
 public:
     RtspServer();
     ~RtspServer();
     void start();
+    void stop();
+
 protected:
     virtual void onMessageReceived(const sp<AMessage> &msg);
 
 private:
+    enum {
+        RTP_TCP,
+        RTP_UDP,
+    };
+
+    enum {
+        S_SETUP,
+        S_PLAY,
+    };
+
     static void AppendCommonResponse(AString *response, int32_t cseq);
 
     void handleStart(const sp<AMessage> &msg);
@@ -54,6 +57,7 @@ private:
 
 	void sendSPSPPS(const unsigned char* data, int32_t size, int64_t ptsUsec);
     void sendVFrame(const unsigned char* data, int32_t size, int64_t ptsUsec);
+    void sendAFrame(const unsigned char* data, int32_t size, int64_t ptsUsec);
 
     struct client_conn {
           int32_t socket;
@@ -69,12 +73,19 @@ private:
 	std::vector<int32_t> thread_sockets;
 	std::vector<client_conn> conn_sockets;
 	std::vector<unsigned char> sps_pps;
-	sp<ScreenDisplay> mScreenDisplay;
-
-	int32_t sequencenumber = 0;
+	pthread_t init_socket_tid;
+	int32_t server_socket;
 	int32_t rtp_socket;
-	int32_t rtcp_socket;
-	bool isStoped = false;
+    int32_t rtcp_socket;
+
+	sp<ScreenDisplay> mScreenDisplay;
+	sp<AudioEncoder> mAudioEncoder;
+
+	int32_t sequencenumber1 = 0;
+	int32_t sequencenumber2 = 0;
+
+	volatile bool is_stop = false;
+	volatile bool has_client = false;
 };
 
 }; // namespace android

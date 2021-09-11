@@ -16,6 +16,7 @@ public:
     Controller();
     ~Controller();
     void start();
+    void stop();
 protected:
     virtual void onMessageReceived(const sp<AMessage> &msg);
 private:
@@ -32,10 +33,16 @@ private:
           int32_t socket;
           int32_t status;
     };
+
     Mutex mLock;
     std::vector<int32_t> thread_sockets;
     std::vector<client_conn> conn_sockets;
-    bool isStoped = false;
+    volatile bool is_stop;
+
+    pthread_t init_socket_tid;
+    int32_t key_fd;
+    int32_t touch_fd;
+    int32_t server_socket;
 };
 
 }; // namespace android

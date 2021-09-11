@@ -54,7 +54,3 @@ bool CBase64::Encode(const unsigned char *pIn, unsigned long uInLen, unsigned ch
 	*uOutLen = p - pOut;
 	return true;
 }
-
-
-
-

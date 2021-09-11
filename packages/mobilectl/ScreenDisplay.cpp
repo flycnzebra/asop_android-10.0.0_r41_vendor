@@ -10,14 +10,17 @@
 using namespace android;
 
 ScreenDisplay::ScreenDisplay(sp<AMessage> notify)
-:mNotify(notify){
+:mNotify(notify)
+{
 }
 
-ScreenDisplay::~ScreenDisplay(){
+ScreenDisplay::~ScreenDisplay()
+{
 }
 
-void ScreenDisplay::startRecord(){
-    FLOGE("startRecord!");
+void ScreenDisplay::startRecord()
+{
+    FLOGD("ScreenDisplay::startRecord()");
     if(isRunning){
         FLOGE("ScreenDisplay is running, exit!");
         return;
@@ -26,22 +29,23 @@ void ScreenDisplay::startRecord(){
     int ret = pthread_create(&run_tid, nullptr, _run_record, (void *) this);
     if (ret != 0) {
     	FLOGE("create socket thread error!");
-    	exit(-1);
     }
 }
 
-void *ScreenDisplay::_run_record(void *argv){
-    FLOGE("_run_record start!");
+void *ScreenDisplay::_run_record(void *argv)
+{
+    FLOGD("ScreenDisplay::_run_record() start!");
     auto *p=(ScreenDisplay *)argv;
     p->isRunning = true;
     screenrecord_start(p->mNotify);
     p->isRunning = false;
-    FLOGE("_run_record exit!");
+    FLOGD("ScreenDisplay::_run_record() exit!");
     return 0;
 }
 
-void ScreenDisplay::stopRecord(){
-    FLOGE("stopRecord!");
+void ScreenDisplay::stopRecord()
+{
+    FLOGD("ScreenDisplay::stopRecord()");
     screenrecord_stop();
     usleep(100000);
     while(isRunning){

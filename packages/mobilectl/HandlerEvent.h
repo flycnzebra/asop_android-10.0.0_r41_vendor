@@ -7,6 +7,7 @@
 
 enum {
     kWhatStart,
+    kWhatStop,
 	kWhatClientSocket,
 	kWhatUpClientStatus,
 	kWhatClientSocketExit,

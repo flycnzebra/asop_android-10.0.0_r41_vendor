@@ -12,53 +12,53 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-cc_binary {
-    name: "mobilectl",
-
-    srcs: [
-        "mobilectl.cpp",
-        "screenrecord.cpp",
-        "EglWindow.cpp",
-        "FrameOutput.cpp",
-        "TextRenderer.cpp",
-        "Overlay.cpp",
-        "Program.cpp",
-        "RtspServer.cpp",
-        "ScreenDisplay.cpp",
-        "Base64.cpp",
-        "Controller.cpp",
-        "AudioStream.cpp",
-    ],
-
-    shared_libs: [
-        "libstagefright",
-        "libmedia",
-        "libmedia_omx",
-        "libutils",
-        "libbinder",
-        "libstagefright_foundation",
-        "libjpeg",
-        "libui",
-        "libgui",
-        "libcutils",
-        "liblog",
-        "libEGL",
-        "libGLESv2",
-    ],
-
-    include_dirs: [
-        "frameworks/av/media/libstagefright",
-        "frameworks/av/media/libstagefright/include",
-        "frameworks/native/include/media/openmax",
-    ],
-
-    cflags: [
-        "-Werror",
-        "-Wall",
-        "-Wno-multichar",
-        "-Wno-unused-parameter",
-        "-Wno-unused-variable",
-        "-Wno-unused-function",
-        //"-UNDEBUG",
-    ]
-}
+//cc_binary {
+//    name: "mobilectl",
+//
+//    srcs: [
+//        "mobilectl.cpp",
+//        "screenrecord.cpp",
+//        "EglWindow.cpp",
+//        "FrameOutput.cpp",
+//        "TextRenderer.cpp",
+//        "Overlay.cpp",
+//        "Program.cpp",
+//        "RtspServer.cpp",
+//        "ScreenDisplay.cpp",
+//        "Base64.cpp",
+//        "Controller.cpp",
+//        "AudioStream.cpp",
+//    ],
+//
+//    shared_libs: [
+//        "libstagefright",
+//        "libmedia",
+//        "libmedia_omx",
+//        "libutils",
+//        "libbinder",
+//        "libstagefright_foundation",
+//        "libjpeg",
+//        "libui",
+//        "libgui",
+//        "libcutils",
+//        "liblog",
+//        "libEGL",
+//        "libGLESv2",
+//    ],
+//
+//    include_dirs: [
+//        "frameworks/av/media/libstagefright",
+//        "frameworks/av/media/libstagefright/include",
+//        "frameworks/native/include/media/openmax",
+//    ],
+//
+//    cflags: [
+//        "-Werror",
+//        "-Wall",
+//        "-Wno-multichar",
+//        "-Wno-unused-parameter",
+//        "-Wno-unused-variable",
+//        "-Wno-unused-function",
+//        //"-UNDEBUG",
+//    ]
+//}
