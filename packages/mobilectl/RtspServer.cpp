@@ -389,7 +389,7 @@ void RtspServer::handleClientSocketExit(const sp<AMessage> &msg)
             break;
         }
     }
-    FLOGD("conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
+    FLOGD("RtspServer conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
     if(conn_sockets.empty()) {
         has_client = false;
         mScreenDisplay->stopRecord();
@@ -531,7 +531,7 @@ status_t RtspServer::onPlayRequest(const char* data, int32_t socket_fd, int32_t 
     response.append("\r\n");
     send(socket_fd,response.c_str(),response.size(),0);
     FLOGD("RtspServer send:len=[%d],errno=[%d]\n%s",(int)response.size(), errno, response.c_str());
-    FLOGD("conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
+    FLOGD("RtspServer conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
     has_client = true;
     mScreenDisplay->stopRecord();
     mScreenDisplay->startRecord();

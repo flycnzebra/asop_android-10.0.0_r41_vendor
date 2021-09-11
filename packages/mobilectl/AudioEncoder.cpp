@@ -37,6 +37,9 @@ void AudioEncoder::onMessageReceived(const sp<AMessage> &msg)
    	    case kWhatClientSocketExit:
    	        handleClientExit(msg);
    	        break;
+   	    case kWhatSocketRecvData:
+   	        handleRecvPCMData(msg);
+   	        break;
    }
 
 }
@@ -149,6 +152,7 @@ void AudioEncoder::stopRecord()
 void *AudioEncoder::_audio_socket(void *argv)
 {
 	FLOGD("AudioEncoder audio_socket start!");
+	signal(SIGPIPE, SIG_IGN);
 	auto *p=(AudioEncoder *)argv;
     struct sockaddr_in t_sockaddr;
     memset(&t_sockaddr, 0, sizeof(t_sockaddr));
@@ -211,31 +215,37 @@ void *AudioEncoder::_audio_client_socket(void *argv)
 	    socket_fd = p->thread_sockets.back();
 	    p->thread_sockets.pop_back();
 	}
-	unsigned char recvBuf[10240];
+	unsigned char recvBuf[4096];
     int32_t recvLen = -1;
 	while(!p->is_stop){
+	    if(!p->is_codec) {
+	        recvLen = recv(socket_fd, recvBuf, 4096, 0);
+	        //FLOGE("AudioEncoder recv! recvLen[%d], errno[%d]", recvLen, errno);
+	        continue;
+	    }
 	    recvLen = recv(socket_fd, recvBuf, 18, 0);
 	    if (recvLen < 18 || (recvBuf[0]!=(unsigned char)0x7E) || (recvBuf[1]!=(unsigned char)0xA5)){
-	        if(recvLen>=16 && (recvBuf[8]==(unsigned char)0x04) && (recvBuf[9]==(unsigned char)0x52)) {
-	            continue;
-	        }
-            goto audio_exit;
+	        recvLen = recv(socket_fd, recvBuf, 4096, 0);
+	        FLOGE("AudioEncoder header error! recvLen[%d], errno[%d]", recvLen, errno);
+	        continue;
         }
 
         if ((recvBuf[8]==(unsigned char)0x04) && (recvBuf[9]==(unsigned char)0x4A)){
             recvLen = recv(socket_fd, recvBuf, 4, 0);
+            FLOGE("AudioEncoder tyep 0x044A! recvLen[%d], errno[%d]", recvLen, errno);
             if(recvLen<4) goto audio_exit;
             continue;
         }
 
         if ((recvBuf[8]==(unsigned char)0x04) && (recvBuf[9]==(unsigned char)0x50)){
             recvLen = recv(socket_fd, recvBuf, 6, 0);
+            FLOGE("AudioEncoder tyep 0x0450! recvLen[%d], errno[%d]", recvLen, errno);
             if(recvLen<6) goto audio_exit;
             continue;
         }
 
         if ((recvBuf[8]!=(unsigned char)0x04) || (recvBuf[9]!=(unsigned char)0x4B)){
-            recvLen = recv(socket_fd, recvBuf, 10240, 0);
+            recvLen = recv(socket_fd, recvBuf, 4096, 0);
             FLOGE("AudioEncoder recv other audio recvLen=%d", recvLen);
             continue;
         }
@@ -260,25 +270,32 @@ void *AudioEncoder::_audio_client_socket(void *argv)
                 msg->setInt64("ch_layout", ch_layout);
                 msg->setInt32("sample_fmt", sample_fmt);
                 msg->setInt64("ptsUsec", systemTime(SYSTEM_TIME_MONOTONIC) / 1000000);
-                p->handleRecvPCMData(msg);
                 //msg->post();
+                p->handleRecvPCMData(msg);
+                //FLOGE("AudioEncoder recv ok size[%d]",dataSize);
                 break;
             }else if(recvLen>0){
+                FLOGE("AudioEncoder recv once data[%d] errno[%d]",recvLen, errno);
                 recvSize+=recvLen;
                 recvData->setRange(recvSize, 0);
             }else{
+                FLOGE("AudioEncoder recv error[%d] errno[%d]",recvLen, errno);
+                if(errno==11) continue;
                 break;
             }
         }
         recvLen = recv(socket_fd, recvBuf, 2, 0);
         if (recvLen < 2 || (recvBuf[0]!=(unsigned char)0x7E) || (recvBuf[1]!=(unsigned char)0x0D)){
+            FLOGE("AudioEncoder tail error! recvLen[%d], errno[%d]", recvLen, errno);
             goto audio_exit;
         }
 	}
+	FLOGE("AudioEncoder will exit!");
 audio_exit:
     sp<AMessage> msg = new AMessage(kWhatClientSocketExit, (AudioEncoder *) argv);
     msg->setInt32("socket", socket_fd);
-    msg->post();
+    //msg->post();
+    p->handleClientExit(msg);
     close(socket_fd);
 	FLOGD("AudioEncoder audio_client_socket exit!");
 	return 0;
@@ -286,6 +303,7 @@ audio_exit:
 
 void AudioEncoder::handleRecvPCMData(const sp<AMessage> &msg)
 {
+    //FLOGE("handleRecvPCMData start");
     int32_t socket_fd;
     CHECK(msg->findInt32("socket", &socket_fd));
 	sp<ABuffer> pcmdata;
@@ -343,11 +361,13 @@ void AudioEncoder::handleRecvPCMData(const sp<AMessage> &msg)
     if(retLen<=0){
         FLOGE("swr_convert failed, delay=%ld, out_count=%ld, retLen=%d", delay, out_count, retLen);
     }else{
+        //FLOGE("swr_convert ok, delay=%ld, out_count=%ld, retLen=%d", delay, out_count, retLen);
         //use mediacodec
         size_t inIndex, outIndex, offset, size;
         uint32_t flags;
+        ptsUsec = 0;
          //input data
-        err = mCodec->dequeueInputBuffer(&inIndex, 20000);
+        err = mCodec->dequeueInputBuffer(&inIndex, 1000);
         if(err != OK) {
             FLOGE("codec->dequeueInputBuffer inIdex=%zu, err=%d", inIndex, err);
             return;
@@ -367,14 +387,14 @@ void AudioEncoder::handleRecvPCMData(const sp<AMessage> &msg)
             return;
         }
         //output data
-        err = mCodec->dequeueOutputBuffer(&outIndex, &offset, &size, &ptsUsec, &flags, 20000);
+        err = mCodec->dequeueOutputBuffer(&outIndex, &offset, &size, &ptsUsec, &flags, 1000);
         switch (err) {
             case OK:
                 if (size != 0) {
                     sp<ABuffer> buffer = ABuffer::CreateAsCopy(outBuffers[outIndex]->data(), outBuffers[outIndex]->size());
                     sp<AMessage> notify = mNotify->dup();
                     notify->setInt32("type", kWhatAudioFrameData);
-                    notify->setInt64("ptsUsec", ptsUsec / 1000000);
+                    notify->setInt64("ptsUsec", systemTime(SYSTEM_TIME_MONOTONIC) / 1000000);
                     notify->setBuffer("data", buffer);
                     notify->post();
                 }
@@ -392,6 +412,7 @@ void AudioEncoder::handleRecvPCMData(const sp<AMessage> &msg)
                 break;
         }
     }
+    //FLOGE("handleRecvPCMData End");
 }
 
 void AudioEncoder::handleClientExit(const sp<AMessage> &msg)

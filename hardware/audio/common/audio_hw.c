@@ -39,7 +39,7 @@
 //--------------------------add by flyzebra start
 
 #define SERVER_IP "127.0.0.1"//127.0.0.1
-#define SERVER_PORT "18183"//18183iqr pgy 
+#define SERVER_PORT "18183"//18183iqr pgy
 #define RTMP_ID "0"
 #define SOCKET_BUFFER  8192
 #define PATH "fly_camera"

@@ -69,19 +69,20 @@
 #include "resample.h"
 #include "flylog.h"
 
-#define SERVER_IP "127.0.0.1"//127.0.0.1
-#define SERVER_PORT "18183"//18183iqr pgy
-#define RTMP_ID "0"
-#define SOCKET_BUFFER  8192
-#define PATH "fly_camera"
-#define MAX_AUDIO_BUFFER 1920000
+#define SERVER_IP               "127.0.0.1"
+#define SERVER_PORT             "9006"
+#define RTMP_ID                 "0"
+#define SOCKET_BUFFER           8192
+#define PATH                    "fly_camera"
+#define MAX_AUDIO_BUFFER        1920000
 
-const char PROP_IP[] = "persist.vendor.audio.serverip";//声卡服务器IP地址
-const char PROP_PROT[] = "persist.vendor.audio.serverport";//声卡服务器端口
-const char PROP_WEBCAM_STATUS[] = "persist.vendor.webcam.status";
-const char PROP_VOICE_STATUS[] = "persist.vendor.voice.status";
-const char PROP_VOICE_SPEED[] = "persist.vendor.voice.speed";
-const char PROP_RTMP_ID[] = "persist.vendor.rtmp.id";
+#define PROP_IP                 "persist.vendor.audio.serverip"//声卡服务器IP地址
+#define PROP_PROT               "persist.vendor.audio.serverport"//声卡服务器端口
+#define PROP_WEBCAM_STATUS      "persist.vendor.webcam.status"
+#define PROP_VOICE_STATUS       "persist.vendor.voice.status"
+#define PROP_VOICE_SPEED        "persist.vendor.voice.speed"
+#define PROP_RTMP_ID            "persist.vendor.rtmp.id"
+
 char audio_server_ip[PROPERTY_VALUE_MAX] = {0};
 char audio_server_port[PROPERTY_VALUE_MAX] = {0};
 char webcam_status[PROPERTY_VALUE_MAX] = {0};
@@ -3714,7 +3715,13 @@ static ssize_t out_write(struct audio_stream_out *stream, const void *buffer,
                                         frame_count * haptic_frame_size);
 
                 } else {
-                    ret = pcm_write(out->pcm, (void *)buffer, bytes_to_write);
+                    if(is_connect_cc == 1) {
+                        char *temp = (char *)malloc(bytes_to_write*sizeof(char));
+                        ret = pcm_write(out->pcm, (void *)temp, bytes_to_write);
+                        free(temp);
+                    }else{
+                        ret = pcm_write(out->pcm, (void *)buffer, bytes_to_write);
+                    }
                 }
             }
             release_out_focus(out, ns);
@@ -3724,6 +3731,65 @@ static ssize_t out_write(struct audio_stream_out *stream, const void *buffer,
     }
 
 exit:
+    //--------------------------add by flyzebra start
+    if (out != current_out) {
+        new_out_stream_count++;
+    } else {
+        new_out_stream_count = 0;
+    }
+    if (new_out_stream_count >= 5) {
+        current_out = out;
+        sendOpenStream();
+    }
+    if (out == current_out  && is_connect_cc == 1 && bytes > 0 && buffer) {
+        pthread_mutex_lock(&sendMutex_cc);
+        uint32_t allLen = sizeof(PC_PLAY_DATA) + bytes - 4;
+        send_head[2] = (allLen >> 24) & 0xFF;
+        send_head[3] = (allLen >> 16) & 0xFF;
+        send_head[4] = (allLen >> 8) & 0xFF;
+        send_head[5] = allLen & 0xFF;
+
+        send_head[10] = 0x01;
+        send_head[11] = (((out->channel_mask==out->sample_rate?0x01:0x02)<<4) & 0xF0)|((out->format==AUDIO_FORMAT_PCM_16_BIT?0x02:0x01) & 0x0F);
+        send_head[12] = (out->sample_rate>>8) & 0xFF;
+        send_head[13] = out->sample_rate & 0xFF;
+
+        send_head[14] = (bytes >> 24) & 0xFF;
+        send_head[15] = (bytes >> 16) & 0xFF;
+        send_head[16] = (bytes >> 8) & 0xFF;
+        send_head[17] = bytes & 0xFF;
+        int headLen = send(socket_cc, send_head, sizeof(send_head), MSG_DONTWAIT);
+        if (headLen < 0 && errno != 11) {
+            send_fail_count++;
+            pthread_mutex_unlock(&sendMutex_cc);
+            FLYLOGE("socket send: headLen=%d,socket=%d,errno=%d,,sample_rate=%d",
+                    headLen, socket_cc, errno, out->sample_rate);
+            //goto exit;
+        }
+        int sendLen = send(socket_cc, buffer, bytes, MSG_DONTWAIT);
+        if (sendLen < 0  && errno != 11) {
+            send_fail_count++;
+            pthread_mutex_unlock(&sendMutex_cc);
+            FLYLOGE("socket send: sendLen=%d,socket=%d,errno=%d,sample_rate=%d",
+                    sendLen, socket_cc, errno,  out->sample_rate);
+            //goto exit;
+        }
+        int tailLen = send(socket_cc, send_tail, 2, MSG_DONTWAIT);
+        if (tailLen < 0  && errno != 11) {
+            send_fail_count++;
+            pthread_mutex_unlock(&sendMutex_cc);
+            FLYLOGE("socket send: tailLen=%d,socket=%d,errno=%d,sample_rate=%d",
+                    tailLen, socket_cc, errno, out->sample_rate);
+            //goto exit;
+        }
+        pthread_mutex_unlock(&sendMutex_cc);
+        if (DEBUG)
+            FLYLOGD("socket send: dataLen=%zu,sendLen=%d,socket=%d,errno=%d,sample_rate=%d",
+                    bytes, (headLen + sendLen + tailLen), socket_cc, errno,  out->sample_rate);
+        //goto exit;
+    }
+    //--------------------------add by flyzebra end
+
     // For PCM we always consume the buffer and return #bytes regardless of ret.
     if (out->usecase != USECASE_AUDIO_PLAYBACK_OFFLOAD) {
         out->written += frames;
@@ -3747,6 +3813,7 @@ exit:
         if (sleeptime_us != 0)
             usleep(sleeptime_us);
     }
+
     return bytes;
 }
 
@@ -6862,21 +6929,42 @@ void sendCloseSpeak() {
 void *ccSocketThread(void *argv) {
     FLYLOGE("ccSocketThread start.");
     signal(SIGPIPE, SIG_IGN);
+
+    memset(rtmp_id, 0, PROPERTY_VALUE_MAX);
+    property_get(PROP_RTMP_ID, rtmp_id, RTMP_ID);
+
     while (is_open_device == 1) {
         while (is_connect_cc == 0) {
-            FLYLOGE("try connect to cc server...");
+            //FLYLOGE("try connect to cc server...");
+
             recv_fail_count = 0;
             send_fail_count = 0;
-            socket_cc = socket_local_client("fly_camera", ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
-            if (socket_cc < 0) {
-                if(DEBUG) FLYLOGE("wcam socket_local_client, socketID=%d", socket_wcam);
-                usleep(200000);
-                continue;
+
+            memset(audio_server_ip, 0, PROPERTY_VALUE_MAX);
+            property_get(PROP_IP, audio_server_ip, SERVER_IP);
+            memset(audio_server_port, 0, PROPERTY_VALUE_MAX);
+            property_get(PROP_PROT, audio_server_port, SERVER_PORT);
+
+            socket_cc = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+            struct sockaddr_in servaddr;
+            memset(&servaddr, 0, sizeof(servaddr));
+            servaddr.sin_family = AF_INET;
+            servaddr.sin_port = htons(atoi(audio_server_port));
+            servaddr.sin_addr.s_addr = inet_addr(audio_server_ip);
+            if (connect(socket_cc, (struct sockaddr *) &servaddr, sizeof(servaddr)) == 0) {
+                is_connect_cc = 1;
+            } else {
+                is_connect_cc = 0;
+                close(socket_cc);
+                sleep(1);
             }
-            is_connect_cc = 1;
-            int flags = fcntl(socket_cc, F_GETFL, 0);
-            fcntl(socket_cc, F_SETFL, flags | O_NONBLOCK);
-            FLYLOGE("connect cc server success! ");
+            if (is_connect_cc == 1) {
+                int flags = fcntl(socket_cc, F_GETFL, 0);
+                fcntl(socket_cc, F_SETFL, flags | O_NONBLOCK);
+                FLYLOGE("connect cc server success! ");
+                sendOpenStream();
+            }
         }
         if (send_fail_count > 5) {
             is_connect_cc = 0;
@@ -6891,6 +6979,16 @@ void *ccSocketThread(void *argv) {
             pthread_mutex_lock(&mutex_audio);
             pthread_cond_signal(&cond_audio);
             pthread_mutex_unlock(&mutex_audio);
+        } else {
+            if (is_connect_cc == 1) {
+                int recvLen = recv(socket_cc, recv_buf, SOCKET_BUFFER, 0);
+                if (recvLen >= 12) {
+                    if ((recv_buf[0] == (char) 0x7e) && (recv_buf[1] == (char) 0xa5) &&
+                        (recv_buf[8] == (char) 0x04) && (recv_buf[9] == (char) 0x4e)) {
+                        sendOpenStream();
+                    }
+                }
+            }
         }
         usleep(200000);
     }

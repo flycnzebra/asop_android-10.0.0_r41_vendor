@@ -270,6 +270,8 @@ struct stream_out {
 
     simple_stats_t fifo_underruns;  // TODO: keep a list of the last N fifo underrun times.
     simple_stats_t start_latency_ms;
+
+    int64_t last_write_time_us;
 };
 
 struct stream_in {

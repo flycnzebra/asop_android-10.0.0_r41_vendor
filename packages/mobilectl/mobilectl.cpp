@@ -57,8 +57,8 @@ int main(int argc, char* const argv[])
 
     androidSetThreadPriority(gettid(), -10);
 
-    sp<ProcessState> proc(ProcessState::self());
-    ProcessState::self()->startThreadPool();
+    //sp<ProcessState> proc(ProcessState::self());
+    //ProcessState::self()->startThreadPool();
 
     sp<android::ALooper> looper_ctrl = new android::ALooper;
     sp<Controller> controller = new Controller();

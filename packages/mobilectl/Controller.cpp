@@ -229,7 +229,7 @@ void Controller::handleClientSocketExit(const sp<AMessage> &msg)
             break;
         }
     }
-    FLOGD("conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
+    FLOGD("Controller conn_sockets size=%d.", conn_sockets.empty()?0:((int)conn_sockets.size()));
 }
 
 void Controller::input_key(int32_t fd, int32_t key)

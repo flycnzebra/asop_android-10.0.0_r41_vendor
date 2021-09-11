@@ -454,7 +454,7 @@ static status_t runEncoder(const sp<MediaCodec>& encoder,
                 sp<ABuffer> buffer = ABuffer::CreateAsCopy(buffers[bufIndex]->data()+4, buffers[bufIndex]->size()-4);
                 sp<AMessage> notify = mNotify->dup();
                 notify->setInt32("type", kWhatVideoFrameData);
-                notify->setInt64("ptsUsec", ptsUsec/1000);
+                notify->setInt64("ptsUsec", systemTime(SYSTEM_TIME_MONOTONIC) / 10001000);
                 notify->setBuffer("data", buffer);
                 notify->post();
                 debugNumFrames++;
