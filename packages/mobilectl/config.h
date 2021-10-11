@@ -13,4 +13,7 @@
 #define AUDIO_SERVER_TCP_PORT   9006
 #define CONTROLLER_TCP_PORT     9008
 
+#define KEYEVENT_DEV_KEY        "/dev/input/event2"
+#define KEYEVENT_DEV_TS         "/dev/input/event2"
+
 #endif //ANDROID_CONFIG_H

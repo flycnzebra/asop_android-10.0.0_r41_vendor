@@ -3,6 +3,7 @@
 //
 #include <errno.h>
 #include <sys/socket.h>
+#include <cutils/sockets.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
@@ -154,23 +155,23 @@ void *AudioEncoder::_audio_socket(void *argv)
 	FLOGD("AudioEncoder audio_socket start!");
 	signal(SIGPIPE, SIG_IGN);
 	auto *p=(AudioEncoder *)argv;
-    struct sockaddr_in t_sockaddr;
-    memset(&t_sockaddr, 0, sizeof(t_sockaddr));
-    t_sockaddr.sin_family = AF_INET;
-    t_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    t_sockaddr.sin_port = htons(AUDIO_SERVER_TCP_PORT);
-    p->server_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (p->server_socket < 0) {
-        FLOGE("socket error %s errno: %d", strerror(errno), errno);
-        return 0;
-    }
-    int32_t ret = bind(p->server_socket,(struct sockaddr *) &t_sockaddr,sizeof(t_sockaddr));
-    if (ret < 0) {
-        FLOGE( "bind %d socket error %s errno: %d", AUDIO_SERVER_TCP_PORT, strerror(errno), errno);
-        return 0;
-    }
-    //p->server_socket = socket_local_server("rtsp_audio", ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
-    ret = listen(p->server_socket, 5);
+    //struct sockaddr_in t_sockaddr;
+    //memset(&t_sockaddr, 0, sizeof(t_sockaddr));
+    //t_sockaddr.sin_family = AF_INET;
+    //t_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    //t_sockaddr.sin_port = htons(AUDIO_SERVER_TCP_PORT);
+    //p->server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    //if (p->server_socket < 0) {
+    //    FLOGE("socket error %s errno: %d", strerror(errno), errno);
+    //    return 0;
+    //}
+    //int32_t ret = bind(p->server_socket,(struct sockaddr *) &t_sockaddr,sizeof(t_sockaddr));
+    //if (ret < 0) {
+    //    FLOGE( "bind %d socket error %s errno: %d", AUDIO_SERVER_TCP_PORT, strerror(errno), errno);
+    //    return 0;
+    //}
+    p->server_socket = socket_local_server("rtsp_audio", ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+    int32_t ret = listen(p->server_socket, 5);
     if (ret < 0) {
         FLOGE("listen error %s errno: %d", strerror(errno), errno);
     }
@@ -359,7 +360,7 @@ void AudioEncoder::handleRecvPCMData(const sp<AMessage> &msg)
         (const uint8_t **) &pdata,
         in_count);
     if(retLen<=0){
-        FLOGE("swr_convert failed, delay=%ld, out_count=%ld, retLen=%d", delay, out_count, retLen);
+        FLOGE("swr_convert failed, delay=%ld, out_count=%ld, retLen=%d", (long)delay, (long)out_count, retLen);
     }else{
         //FLOGE("swr_convert ok, delay=%ld, out_count=%ld, retLen=%d", delay, out_count, retLen);
         //use mediacodec

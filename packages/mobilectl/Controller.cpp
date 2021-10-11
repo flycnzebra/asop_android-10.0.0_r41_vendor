@@ -30,8 +30,6 @@ void Controller::start()
 {
     FLOGD("Controller::start()");
     is_stop = false;
-    int32_t key_fd = open("/dev/input/event0",O_RDWR);
-    int32_t touch_fd = open("/dev/input/event2",O_RDWR);
     int32_t ret = pthread_create(&init_socket_tid, nullptr, _controller_socket, (void *) this);
     if (ret != 0) {
     	FLOGE("create controller socket thread error!");
@@ -41,8 +39,6 @@ void Controller::start()
 void Controller::stop()
 {
     is_stop = true;
-    close(key_fd);
-    close(touch_fd);
     if(server_socket >= 0){
         close(server_socket);
         server_socket = -1;
@@ -115,12 +111,18 @@ void *Controller::_controller_client_socket(void *argv){
 	}
 	char recvBuf[1024];
     int32_t recvLen = -1;
-    int32_t key_fd = p->key_fd;
-    int32_t touch_fd = p->touch_fd;
+    int32_t key_fd = open(KEYEVENT_DEV_KEY,O_RDWR);
+    int32_t ts_fd = open(KEYEVENT_DEV_TS,O_RDWR);
 	while(!p->is_stop){
 	    memset(recvBuf,0,1024);
 	    recvLen = recv(socket_fd, recvBuf, 1024, 0);
-	    FLOGD("Controller sever_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, recvBuf);
+	    {
+            char temp[4096] = {0};
+            for (int32_t i = 0; i < recvLen; i++) {
+                sprintf(temp, "%s%02x:", temp, recvBuf[i]);
+            }
+            FLOGE("Controller sever_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
+        }
         if (recvLen <= 0) {
             sp<AMessage> msg = new AMessage(kWhatClientSocketExit, (Controller *) argv);
             msg->setInt32("socket", socket_fd);
@@ -128,15 +130,11 @@ void *Controller::_controller_client_socket(void *argv){
             close(socket_fd);
             break;
         }else {
-            //char temp[4096] = {0};
-            //for (int32_t i = 0; i < recvLen; i++) {
-            //    sprintf(temp, "%s%02x:", temp, recvBuf[i]);
-            //}
-            //FLOGE("keyevent_recv:len=[%d],errno=[%d]\n%s", recvLen, errno, temp);
             switch (recvBuf[0]){
                 //HOME 键
                 case 0x00:
-                    p->input_key(key_fd, KEY_HOME);
+                    //p->command_key(KEY_HOME);
+                    system("input keyevent 3");
                     break;
                 //触摸屏幕
                 case 0x02:
@@ -146,7 +144,7 @@ void *Controller::_controller_client_socket(void *argv){
                         int32_t y = (recvBuf[14]<<24)+ (recvBuf[15]<<16) + (recvBuf[16]<<8) + recvBuf[17];
                         int32_t w = (recvBuf[18]<<8) + recvBuf[19];
                         int32_t h = (recvBuf[20]<<8) + recvBuf[21];
-                        p->input_touch(touch_fd, x, y, action== 1 ? 0 : 1);
+                        p->command_ts(x, y, action== 1 ? 0 : 1);
                     }
                     break;
                 //中间滚动
@@ -156,27 +154,30 @@ void *Controller::_controller_client_socket(void *argv){
                         int32_t y = 0x3C0;
                         if(recvBuf[20]==0x01){
                             for(int i=0;i<10;i++) {
-                                p->input_touch(touch_fd, x, y + i * 10, 1);
+                                p->command_ts(x, y + i * 10, 1);
                                 usleep(1000);
                             }
-                            p->input_touch(touch_fd, x, y + 100, 1);
-                            p->input_touch(touch_fd, x, y + 100, 0);
+                            p->command_ts(x, y + 100, 1);
+                            p->command_ts(x, y + 100, 0);
                         }else{
                             for(int i=0;i<10;i++) {
-                                p->input_touch(touch_fd, x, y - i * 10, 1);
+                                p->command_ts(x, y - i * 10, 1);
                                 usleep(1000);
                             }
-                            p->input_touch(touch_fd, x, y - 100, 1);
-                            p->input_touch(touch_fd, x, y - 100, 0);
+                            p->command_ts(x, y - 100, 1);
+                            p->command_ts(x, y - 100, 0);
                         }
                     }
                     break;
                 case 0x04:
-                    p->input_key(key_fd, KEY_BACK);
+                    //p->command_key(KEY_BACK);
+                    system("input keyevent 4");
                     break;
             }
         }
 	}
+	close(key_fd);
+	close(ts_fd);
 	FLOGD("controller_client_socket exit!");
 	return 0;
 }
@@ -260,7 +261,7 @@ void Controller::input_key(int32_t fd, int32_t key)
     ret = write(fd,&_event4,sizeof(_event4));
 }
 
-void Controller::input_touch(int32_t fd, int32_t x, int32_t y, int32_t action)
+void Controller::input_ts(int32_t fd, int32_t x, int32_t y, int32_t action)
 {
     input_event _event1;
     memset(&_event1,0,sizeof(_event1));
@@ -298,4 +299,42 @@ void Controller::input_touch(int32_t fd, int32_t x, int32_t y, int32_t action)
     _event6.code = SYN_REPORT;
     _event6.value = 0;
     ret = write(fd,&_event6,sizeof(_event6));
+}
+
+void Controller::command_key(int32_t key)
+{
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_KEY, EV_KEY, key, 1);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_KEY, EV_SYN, SYN_REPORT, 0);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_KEY, EV_KEY, key, 0);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_KEY, EV_SYN, SYN_REPORT, 0);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+}
+
+void Controller::command_ts(int32_t x, int32_t y, int32_t action)
+{
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_TS, EV_ABS, ABS_MT_POSITION_X, x);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_TS, EV_ABS, ABS_MT_POSITION_Y, y);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_TS, EV_ABS, ABS_MT_TRACKING_ID, 0);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_TS, EV_SYN, SYN_MT_REPORT, 0);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_TS, EV_KEY, BTN_TOUCH, action);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
+    sprintf(sendevent_text,"sendevent %s %d %d %d", KEYEVENT_DEV_TS, EV_SYN, SYN_REPORT, 0);
+    system(sendevent_text);
+    FLOGE("%s",sendevent_text);
 }

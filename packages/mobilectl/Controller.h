@@ -27,7 +27,10 @@ private:
     void handleClientSocketExit(const sp<AMessage> &msg);
 
     void input_key(int32_t fd, int32_t key);
-    void input_touch(int32_t fd, int32_t x, int32_t y, int32_t action);
+    void input_ts(int32_t fd, int32_t x, int32_t y, int32_t action);
+
+    void command_key(int32_t key);
+    void command_ts(int32_t x, int32_t y, int32_t action);
 
     struct client_conn {
           int32_t socket;
@@ -40,9 +43,8 @@ private:
     volatile bool is_stop;
 
     pthread_t init_socket_tid;
-    int32_t key_fd;
-    int32_t touch_fd;
     int32_t server_socket;
+    char sendevent_text[256];
 };
 
 }; // namespace android

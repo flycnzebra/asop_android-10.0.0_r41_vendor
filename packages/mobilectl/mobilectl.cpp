@@ -49,7 +49,7 @@ static status_t configureSignals() {
 
 int main(int argc, char* const argv[])
 {
-    FLOGD("mobilectl start ...");
+    FLOGD("mobilectl version 202109121722 ...");
 
     is_stop = false;
     status_t err = configureSignals();

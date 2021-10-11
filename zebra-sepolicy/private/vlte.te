@@ -1,0 +1,4 @@
+typeattribute vlte coredomain;
+typeattribute vlte domain_deprecated;
+
+init_daemon_domain(vlte)
