@@ -217,6 +217,15 @@ bool V4L2Camera::enqueueRequestBuffers() {
   if(sleep_time > 0 ){
      usleep(sleep_time);
   }
+  int64_t sleep_time = (int)(1000000/30 - ((int64_t)((current_time-last_time)&0x00000000FFFFFFFF)));
+   //HAL_LOGE("usleep current_time=%lld, last_time=%lld, sleep_time=%d",current_time,last_time,sleep_time);
+  if(sleep_time > 0){
+     if(sleep_time < (1000000/30)){
+        usleep(sleep_time);
+     }else{
+     HAL_LOGE("usleep current_time=%lld, last_time=%lld, sleep_time=%d",current_time,last_time,sleep_time);
+  }
+
   std::shared_ptr<default_camera_hal::CaptureRequest> request =  dequeueRequest();
   // Assume request validated before being added to the queue
   // (For now, always exactly 1 output buffer, no inputs).
