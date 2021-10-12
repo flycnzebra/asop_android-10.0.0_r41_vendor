@@ -1,0 +1,3 @@
+hidl-gen -o hardware/interfaces/zebra/1.0/default -Lc++-impl -randroid.hardware:hardware/interfaces -randroid.hidl:system/libhidl/transport android.hardware.zebra@1.0
+hidl-gen -o hardware/interfaces/zebra/1.0/default -Landroidbp-impl -randroid.hardware:hardware/interfaces -randroid.hidl:system/libhidl/transport android.hardware.zebra@1.0
+./hardware/interfaces/update-makefiles.sh
