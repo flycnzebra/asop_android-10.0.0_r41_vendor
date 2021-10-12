@@ -1,0 +1,2 @@
+# add by tangshiyuan for ratd
+/system/bin/ratd                 u:object_r:ratd_exec:s0

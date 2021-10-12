@@ -1,0 +1,2 @@
+# add by tangshiyuan for ratd
+type ratd_socket, file_type, coredomain_socket;

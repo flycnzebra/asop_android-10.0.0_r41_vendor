@@ -1,2 +1,0 @@
-type mobilectl, domain;
-type mobilectl_exec, exec_type, file_type;

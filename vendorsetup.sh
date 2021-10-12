@@ -33,7 +33,7 @@ cp -rvf $SRC/crosshatch/build/target/product/security/* $OBJ/build/target/produc
 cp -rvf $SRC/crosshatch/build/core/* $OBJ/build/core/
 
 #All Selinux
-cp -rvf $SRC/crosshatch/system/sepolicy/* $OBJ/system/sepolicy/
+#cp -rvf $SRC/crosshatch/system/sepolicy/* $OBJ/system/sepolicy/
 
 #init.rc
 cp -v $SRC/crosshatch/system/core/rootdir/init.rc $OBJ/system/core/rootdir/
