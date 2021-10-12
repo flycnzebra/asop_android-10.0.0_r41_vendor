@@ -9,7 +9,6 @@ cc_prebuilt_library_shared {
             srcs: ["lib64/libavcodec-57.so"],
         },
     },
-    export_include_dirs: ["include"],
 }
 
 cc_prebuilt_library_shared {
@@ -101,4 +100,5 @@ cc_prebuilt_library_shared {
             srcs: ["lib64/libswscale-4.so"],
         },
     },
+    export_include_dirs: ["include"],
 }
