@@ -14,25 +14,24 @@
 # limitations under the License.
 #
 
-PRODUCT_HARDWARE := crosshatch
+PRODUCT_HARDWARE := blueline
 
 include device/google/crosshatch/device-common.mk
 
-DEVICE_PACKAGE_OVERLAYS += device/google/crosshatch/crosshatch/overlay
+DEVICE_PACKAGE_OVERLAYS += device/google/crosshatch/blueline/overlay
 
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/init.insmod.crosshatch.cfg:$(TARGET_COPY_OUT_VENDOR)/etc/init.insmod.cfg
+    $(LOCAL_PATH)/init.insmod.blueline.cfg:$(TARGET_COPY_OUT_VENDOR)/etc/init.insmod.cfg
 
 # Audio XMLs
 PRODUCT_COPY_FILES += \
-    $(LOCAL_PATH)/mixer_paths_tavil_c1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_tavil_c1.xml \
-    $(LOCAL_PATH)/audio_policy_volumes_c1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
-    $(LOCAL_PATH)/audio_platform_info_tavil_c1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_tavil_c1.xml
+    $(LOCAL_PATH)/mixer_paths_tavil_b1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/mixer_paths_tavil_b1.xml \
+    $(LOCAL_PATH)/audio_policy_volumes_b1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_policy_volumes.xml \
+    $(LOCAL_PATH)/audio_platform_info_tavil_b1.xml:$(TARGET_COPY_OUT_VENDOR)/etc/audio_platform_info_tavil_b1.xml
 
 PRODUCT_COPY_FILES += \
-    device/google/crosshatch/nfc/libnfc-nxp.crosshatch.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nxp.conf
+    device/google/crosshatch/nfc/libnfc-nxp.blueline.conf:$(TARGET_COPY_OUT_VENDOR)/etc/libnfc-nxp.conf
 
-PRODUCT_PACKAGES += \
-    NoCutoutOverlay
-    
+PRODUCT_PRODUCT_PROPERTIES += ro.com.google.ime.height_ratio=1.2
+
 include vendor/zebra/device-common.mk
