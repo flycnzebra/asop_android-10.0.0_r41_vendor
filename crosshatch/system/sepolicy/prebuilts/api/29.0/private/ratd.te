@@ -1,3 +1,0 @@
-typeattribute ratd coredomain;
-
-init_daemon_domain(ratd)

@@ -1,11 +1,11 @@
 #!/bin/bash
 #Copyright (c) 2021, flyzebra, flycnzebra@gmail.com #
 . build/envsetup.sh
-lunch aosp_crosshatch-userdebug
+lunch aosp_blueline-userdebug
 
 echo "################<create out dir>################"
 android_dir=$(pwd)
-packagedir=~/version/aosp_crosshatch
+packagedir=~/version/aosp_blueline
 newversion=ZEBRA.DBUG.`date +%Y%m%d`.0`date +%H`
 export BUILD_DISPLAY_ID=$newversion
 rm -rvf $packagedir/$newversion
@@ -31,7 +31,7 @@ fi
 
 echo "################<make project>################"
 make -j40
-if [ ! -f "./out/target/product/crosshatch/system.img" ];then
+if [ ! -f "./out/target/product/blueline/system.img" ];then
 	echo "make error! not find system.img file!";
 	exit 1;
 fi
@@ -43,31 +43,31 @@ cd $android_dir
 
 echo "################<make otapackage>################"
 make otapackage -j40
-if [ ! -f "./out/target/product/crosshatch/obj/PACKAGING/target_files_intermediates/aosp_crosshatch-target_files-eng.flyzebra/IMAGES/system.img" ];then
+if [ ! -f "./out/target/product/blueline/obj/PACKAGING/target_files_intermediates/aosp_blueline-target_files-eng.flyzebra/IMAGES/system.img" ];then
 	echo "make error! not find ota system.img file!";
 	exit 1;
 fi
-if [ ! -f "./out/target/product/crosshatch/aosp_crosshatch-ota-eng.flyzebra.zip" ];then
-	echo "make error! not find aosp_crosshatch-ota-eng.build.zip file!";
+if [ ! -f "./out/target/product/blueline/aosp_blueline-ota-eng.flyzebra.zip" ];then
+	echo "make error! not find aosp_blueline-ota-eng.build.zip file!";
 	exit 1;
 fi
-if [ ! -f "out/target/product/crosshatch/obj/PACKAGING/target_files_intermediates/aosp_crosshatch-target_files-eng.flyzebra.zip" ];then
-	echo "make error! not find system.img aosp_crosshatch-target_files-eng.build.zip file!";
+if [ ! -f "out/target/product/blueline/obj/PACKAGING/target_files_intermediates/aosp_blueline-target_files-eng.flyzebra.zip" ];then
+	echo "make error! not find system.img aosp_blueline-target_files-eng.build.zip file!";
 	exit 1;
 fi
 
 echo "################<out all image>################"
 mkdir -p $packagedir/$newversion
 cd out/target/product/
-zip $packagedir/$newversion/$newversion.img.zip crosshatch/*.img
-zip -u $packagedir/$newversion/$newversion.img.zip crosshatch/android-info.txt
+zip $packagedir/$newversion/$newversion.img.zip blueline/*.img
+zip -u $packagedir/$newversion/$newversion.img.zip blueline/android-info.txt
 cd $android_dir
 
 echo "################<out ota file>################"
-cp -v out/target/product/crosshatch/aosp_crosshatch-ota-eng.flyzebra.zip $packagedir/$newversion/$newversion.ota.zip
+cp -v out/target/product/blueline/aosp_blueline-ota-eng.flyzebra.zip $packagedir/$newversion/$newversion.ota.zip
 
 echo "################<out target file>################"
-cp -v out/target/product/crosshatch/obj/PACKAGING/target_files_intermediates/aosp_crosshatch-target_files-eng.flyzebra.zip $packagedir/$newversion/$newversion.target.zip
+cp -v out/target/product/blueline/obj/PACKAGING/target_files_intermediates/aosp_blueline-target_files-eng.flyzebra.zip $packagedir/$newversion/$newversion.target.zip
 
 echo "################<up ota package>################"
 ./build/tools/releasetools/ota_from_target_files -i $packagedir/$oldversion/$oldversion.target.zip $packagedir/$newversion/$newversion.target.zip $packagedir/$newversion/update_$oldversion-$newversion.zip
