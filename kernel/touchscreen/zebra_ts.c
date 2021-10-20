@@ -10,7 +10,7 @@
 
 struct input_dev *ts_input_dev;
 
-int __init zebra_ts_init(void)
+static int __init zebra_ts_init(void)
 {
 	int ret;
 
@@ -47,7 +47,7 @@ int __init zebra_ts_init(void)
 	return 0;
 }
 
-void __exit zebra_ts_exit(void)
+static void __exit zebra_ts_exit(void)
 {
 	input_unregister_device(ts_input_dev);
 	input_free_device(ts_input_dev);
