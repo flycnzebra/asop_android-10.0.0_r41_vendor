@@ -1,4 +1,11 @@
-# add by tangshiyuan
-/system/bin/ratd                 u:object_r:ratd_exec:s0
-/system/bin/vlte                 u:object_r:vlte_exec:s0
-/system/bin/mctl                 u:object_r:mctl_exec:s0
+##########################
+# Devices
+#
+/dev/socket/ratd                                u:object_r:ratd_socket:s0
+/dev/socket/vlte                                u:object_r:vlte_socket:s0
+#############################
+# System files
+#
+/system/bin/ratd                                u:object_r:ratd_exec:s0
+/system/bin/vlte                                u:object_r:vlte_exec:s0
+/system/bin/mctl                                u:object_r:mctl_exec:s0

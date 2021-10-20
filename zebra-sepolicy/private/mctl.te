@@ -1,5 +1,4 @@
 typeattribute mctl coredomain;
-typeattribute mctl domain_deprecated;
 
 init_daemon_domain(mctl)
 
@@ -9,4 +8,3 @@ allow mctl mediaserver_service:service_manager { find };
 allow mctl mediametrics_service:service_manager { find };
 allow mctl batterystats_service:service_manager { find };
 allow mctl input_service:service_manager { find };
-allow mctl zebra_service:service_manager { find add };

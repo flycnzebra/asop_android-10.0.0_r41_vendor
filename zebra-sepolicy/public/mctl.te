@@ -1,5 +1,5 @@
 type mctl, domain;
-type mctl_exec, exec_type, file_type;
+type mctl_exec, system_file_type, exec_type, file_type;
 
 allow mctl port:tcp_socket { bind name_bind node_bind name_connect };
 allow mctl port:udp_socket { bind name_bind node_bind };
@@ -15,7 +15,6 @@ allow mctl system_server:binder { call transfer };
 allow mctl servicemanager:binder { call transfer };
 allow mctl mediametrics:binder { call transfer };
 allow mctl mediaserver:binder { call transfer };
-allow mctl mediacodec:binder { call transfer };
 allow mctl input_device:dir { getattr search };
 allow mctl input_device:chr_file { open read write };
 allow mctl system_file:file { execute_no_trans };
@@ -29,11 +28,8 @@ allow mctl ashmem_device:chr_file { execute };
 
 allow netd mctl:fd { use };
 allow netd mctl:tcp_socket { read write getopt setopt };
-allow hal_audio_default mctl:unix_stream_socket { connectto };
 allow servicemanager mctl:dir { getattr search };
 allow servicemanager mctl:file { getattr read open };
 allow servicemanager mctl:process { getattr };
 allow surfaceflinger mctl:binder { call transfer };
 allow mediaserver mctl:binder { call transfer };
-allow mediacodec mctl:fd { use };
-allow mediacodec mctl:binder { call transfer };
