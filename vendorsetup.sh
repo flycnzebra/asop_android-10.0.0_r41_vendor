@@ -22,33 +22,27 @@ mkdir -p $OBJ/frameworks/base/services/core/java/com/android/server/zebra
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/zebra/ZebraService.java $OBJ/frameworks/base/services/core/java/com/android/server/zebra/ZebraService.java
 #make api-stubs-docs-update-current-api -j24
 cp -v $SRC/blueline/frameworks/base/api/current.txt $OBJ/frameworks/base/api/current.txt
-
 #copy blueline mk filse
 cp -v $SRC/blueline/AndroidProducts._ $OBJ/device/google/crosshatch/AndroidProducts.mk
 cp -v $SRC/blueline/aosp_blueline.mk $OBJ/device/google/crosshatch/
 cp -v $SRC/blueline/device-blueline.mk $OBJ/device/google/crosshatch/
-
 #create release-key
 cp -rvf $SRC/blueline/build/target/product/security/* $OBJ/build/target/product/security/
 cp -rvf $SRC/blueline/build/core/* $OBJ/build/core/
-
 #init.rc
 cp -v $SRC/blueline/system/core/rootdir/init.rc $OBJ/system/core/rootdir/
-
 #gps
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/location/GnssLocationProvider.java $OBJ/frameworks/base/services/core/java/com/android/server/location/
-
 #Launcher
 cp -rvf $SRC/blueline/packages/apps/Launcher3 $OBJ/packages/apps/
-
+#自定义sepolicy
+cp -v $SRC/blueline/device/google/crosshatch/BoardConfig-common._ $OBJ/device/google/crosshatch/BoardConfig-common.mk
+#zebra hidl server
+cp -v $SRC/blueline/device/google/crosshatch/manifest.xml $OBJ/device/google/crosshatch/manifest.xml
 #不编译Android10的新功能llkd
 mv -v $OBJ/system/core/llkd/Android.bp $OBJ/system/core/llkd/Android._
 mv -v $OBJ/system/core/llkd/tests/Android.bp $OBJ/system/core/llkd/tests/Android._
-
 #不编译原生的audio
 cp -v $SRC/blueline/hardware/qcom/audio/Android._ $OBJ/hardware/qcom/audio/Android.mk
 mv -v $OBJ/hardware/qcom/audio/hal/Android.mk $OBJ/hardware/qcom/audio/hal/Android._
-
-#自定义sepolicy
-cp -v $SRC/blueline/device/google/blueline/BoardConfig-common._ $OBJ/device/google/blueline/BoardConfig-common.mk
 echo "################<install zebra project finish>################"

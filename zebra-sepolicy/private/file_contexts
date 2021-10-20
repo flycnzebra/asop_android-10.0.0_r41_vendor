@@ -1,2 +1,4 @@
-# add by tangshiyuan for ratd
+# add by tangshiyuan
 /system/bin/ratd                 u:object_r:ratd_exec:s0
+/system/bin/vlte                 u:object_r:vlte_exec:s0
+/system/bin/mctl                 u:object_r:mctl_exec:s0

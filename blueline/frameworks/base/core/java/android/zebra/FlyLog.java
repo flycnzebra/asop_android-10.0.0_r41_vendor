@@ -7,32 +7,12 @@ import android.util.Log;
  * Created by FlyZebra on 2016/3/24.
  */
 public class FlyLog {
-    public static String TAG = "Zebra-Sys";
+    public static String TAG = "ZEBRA-SYS";
     public static String[] filter = {
     };
 
-
-    public static void i(String logString, Object... args) {
-        for (String aFilter : filter) {
-            if (logString.indexOf(aFilter) == 0) {
-                return;
-            }
-        }
-        Log.i(TAG, buildLogString(logString, args));
-    }
-
-    public static void d() {
-        Log.d(TAG, buildLogString(""));
-    }
-
-
-    public static void d(String logString, Object... args) {
-        for (String aFilter : filter) {
-            if (logString.indexOf(aFilter) == 0) {
-                return;
-            }
-        }
-        Log.d(TAG, buildLogString(logString, args));
+    public static void v() {
+        Log.v(TAG, buildLogString(""));
     }
 
     public static void v(String logString, Object... args) {
@@ -44,13 +24,47 @@ public class FlyLog {
         Log.v(TAG, buildLogString(logString, args));
     }
 
+    public static void d() {
+        Log.d(TAG, buildLogString(""));
+    }
+
+    public static void d(String logString, Object... args) {
+        for (String aFilter : filter) {
+            if (logString.indexOf(aFilter) == 0) {
+                return;
+            }
+        }
+        Log.d(TAG, buildLogString(logString, args));
+    }
+
+    public static void i() {
+        Log.i(TAG, buildLogString(""));
+    }
+
+    public static void i(String logString, Object... args) {
+        for (String aFilter : filter) {
+            if (logString.indexOf(aFilter) == 0) {
+                return;
+            }
+        }
+        Log.i(TAG, buildLogString(logString, args));
+    }
+
+    public static void w() {
+        Log.e(TAG, buildLogString(""));
+    }
+
     public static void w(String logString, Object... args) {
         for (String aFilter : filter) {
             if (logString.indexOf(aFilter) == 0) {
                 return;
             }
         }
-        Log.w(TAG, buildLogString(logString, args));
+        Log.e(TAG, buildLogString(logString, args));
+    }
+
+    public static void e() {
+        Log.e(TAG, buildLogString(""));
     }
 
     public static void e(String logString, Object... args) {
@@ -61,7 +75,6 @@ public class FlyLog {
         }
         Log.e(TAG, buildLogString(logString, args));
     }
-
 
     private static String buildLogString(String str, Object... args) {
         if (args.length > 0) {

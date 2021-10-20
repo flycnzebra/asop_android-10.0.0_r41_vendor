@@ -1,2 +1,3 @@
 # add by tangshiyuan for zebra system service
 zebra                                     u:object_r:zebra_service:s0
+zebra.svc                                 u:object_r:zebra_service:s0

@@ -1,4 +1,4 @@
-#set property
+#support china mobile sim
 PRODUCT_PROPERTY_OVERRIDES += \
 ro.mtk_ims_support=1
 PRODUCT_PROPERTY_OVERRIDES += \
@@ -24,15 +24,21 @@ persist.radio.data_con_rprt=1
 PRODUCT_PROPERTY_OVERRIDES += \
 persist.radio.calls.on.ims=1
 
+#adb connect
 PRODUCT_PROPERTY_OVERRIDES += \
-persist.radio.mcwill.pid=81.98.97.25
+service.adb.tcp.port=5555
 
 #add install app
-PRODUCT_PACKAGES +=mbn_sw.txt
-PRODUCT_PACKAGES += fota
+PRODUCT_PACKAGES += mbn_sw.txt
+#PRODUCT_PACKAGES += fota
 PRODUCT_PACKAGES += webcam
+PRODUCT_PACKAGES += mctl
+PRODUCT_PACKAGES += vlte
+PRODUCT_PACKAGES += libvlte
 
 ##c10 m-stream
-PRODUCT_PACKAGES += ratd
+#PRODUCT_PROPERTY_OVERRIDES += \
+#persist.radio.mcwill.pid=81.98.97.88
+#PRODUCT_PACKAGES += ratd
 #PRODUCT_PACKAGES += mpc
-PRODUCT_PACKAGES += lib-mpd
+#PRODUCT_PACKAGES += lib-mpd

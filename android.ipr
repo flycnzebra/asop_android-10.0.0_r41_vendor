@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project relativePaths="true" version="4">
+<project version="4">
   <component name="AntConfiguration">
     <defaultAnt bundledAnt="true" />
     <buildFile url="file://$PROJECT_DIR$/ide/intellij/build.xml">
@@ -28,8 +28,6 @@
     </option>
   </component>
   <component name="CompilerConfiguration">
-    <option name="DEFAULT_COMPILER" value="Javac" />
-    <option name="DEPLOY_AFTER_MAKE" value="0" />
     <resourceExtensions>
       <entry name=".+\.(properties|xml|html|dtd|tld)" />
       <entry name=".+\.(gif|png|jpeg|jpg)" />
@@ -76,45 +74,10 @@
   </component>
   <component name="IdProvider" IDEtalkID="C8FEF8FDDA8778BFC0BDE2CF5A21CB2C" />
   <component name="InspectionProjectProfileManager">
-    <option name="PROJECT_PROFILE" value="Project Default" />
-    <option name="USE_PROJECT_LEVEL_SETTINGS" value="false" />
-    <scopes />
-    <profiles>
-      <profile version="1.0" is_locked="false">
-        <option name="myName" value="Project Default" />
-        <option name="myLocal" value="false" />
-        <inspection_tool class="JavaDoc" level="WARNING" enabled="false">
-          <option name="TOP_LEVEL_CLASS_OPTIONS">
-            <value>
-              <option name="ACCESS_JAVADOC_REQUIRED_FOR" value="none" />
-              <option name="REQUIRED_TAGS" value="" />
-            </value>
-          </option>
-          <option name="INNER_CLASS_OPTIONS">
-            <value>
-              <option name="ACCESS_JAVADOC_REQUIRED_FOR" value="none" />
-              <option name="REQUIRED_TAGS" value="" />
-            </value>
-          </option>
-          <option name="METHOD_OPTIONS">
-            <value>
-              <option name="ACCESS_JAVADOC_REQUIRED_FOR" value="none" />
-              <option name="REQUIRED_TAGS" value="@return@param@throws or @exception" />
-            </value>
-          </option>
-          <option name="FIELD_OPTIONS">
-            <value>
-              <option name="ACCESS_JAVADOC_REQUIRED_FOR" value="none" />
-              <option name="REQUIRED_TAGS" value="" />
-            </value>
-          </option>
-          <option name="IGNORE_DEPRECATED" value="false" />
-          <option name="IGNORE_JAVADOC_PERIOD" value="true" />
-          <option name="myAdditionalJavadocTags" value="" />
-        </inspection_tool>
-      </profile>
-    </profiles>
-    <list size="0" />
+    <profile version="1.0">
+      <option name="myName" value="Project Default" />
+    </profile>
+    <version value="1.0" />
   </component>
   <component name="JavacSettings">
     <option name="DEBUGGING_INFO" value="true" />
@@ -281,8 +244,8 @@
       <module fileurl="file://$PROJECT_DIR$/android.iml" filepath="$PROJECT_DIR$/android.iml" />
     </modules>
   </component>
-  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" assert-keyword="true" project-jdk-name="1.8 (No Libraries)" project-jdk-type="JavaSDK">
-    <output url="file:///tmp/intellij$PROJECT_DIR$/classes" />
+  <component name="ProjectRootManager" version="2" languageLevel="JDK_1_8" project-jdk-name="Android API 29 Platform" project-jdk-type="Android SDK">
+    <output url="file:///tmp/intellijZ:/aosp/android/classes" />
   </component>
   <component name="RmicSettings">
     <option name="IS_EANABLED" value="false" />
@@ -293,6 +256,38 @@
   </component>
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Perforce" />
+    <mapping directory="$PROJECT_DIR$/frameworks/av" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/base" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/compile/libbcc" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/compile/mclinker" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/compile/slang" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/ex" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/hardware/interfaces" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/layoutlib" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/minikin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/ml" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/multidex" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/native" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/bitmap" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/calendar" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/car/services" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/car/setupwizard" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/chips" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/colorpicker" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/datetimepicker" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/gamesdk" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/net/ethernet" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/net/ike" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/net/ims" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/net/voip" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/net/wifi" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/photoviewer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/setupwizard" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/telephony" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/timezonepicker" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/opt/vcard" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/rs" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/frameworks/wilhelm" vcs="Git" />
   </component>
   <component name="com.intellij.jsf.UserDefinedFacesConfigs">
     <option name="USER_DEFINED_CONFIGS">
@@ -307,4 +302,3 @@
     <option name="DEFAULT_LAYOUT_MANAGER" value="GridLayoutManager" />
   </component>
 </project>
-
