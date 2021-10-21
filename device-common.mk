@@ -28,6 +28,27 @@ persist.radio.calls.on.ims=1
 PRODUCT_PROPERTY_OVERRIDES += \
 service.adb.tcp.port=5555
 
+#save log to sdcard
+PRODUCT_COPY_FILES +=vendor/zebra/zlog.sh:/system/etc/zlog.sh
+
+#ffmpeg
+PRODUCT_PACKAGES += libavcodec-57
+PRODUCT_PACKAGES += libavdevice-57
+PRODUCT_PACKAGES += libavfilter-6
+PRODUCT_PACKAGES += libavformat-57
+PRODUCT_PACKAGES += libavutil-55
+PRODUCT_PACKAGES += libpostproc-54
+PRODUCT_PACKAGES += libswresample-2
+PRODUCT_PACKAGES += libswscale-4
+PRODUCT_PACKAGES += libyuvz
+
+#c10 m-stream
+PRODUCT_PROPERTY_OVERRIDES += \
+persist.radio.mcwill.pid=81.98.97.88
+PRODUCT_PACKAGES += ratd
+PRODUCT_PACKAGES += mpc
+PRODUCT_PACKAGES += lib-mpd
+
 #add install app
 PRODUCT_PACKAGES += mbn_sw.txt
 #PRODUCT_PACKAGES += fota
@@ -35,10 +56,3 @@ PRODUCT_PACKAGES += webcam
 PRODUCT_PACKAGES += mctl
 PRODUCT_PACKAGES += vlte
 PRODUCT_PACKAGES += libvlte
-
-##c10 m-stream
-#PRODUCT_PROPERTY_OVERRIDES += \
-#persist.radio.mcwill.pid=81.98.97.88
-#PRODUCT_PACKAGES += ratd
-#PRODUCT_PACKAGES += mpc
-#PRODUCT_PACKAGES += lib-mpd

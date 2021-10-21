@@ -12,24 +12,8 @@ LOCAL_CERTIFICATE := platform
 #LOCAL_PROPRIETARY_MODULE := true
 #LOCAL_DEX_PREOPT := false
 LOCAL_PREBUILT_JNI_LIBS := \
-lib/armeabi-v7a/libavcodec-57.so \
-lib/armeabi-v7a/libavdevice-57.so \
-lib/armeabi-v7a/libavfilter-6.so \
-lib/armeabi-v7a/libavformat-57.so \
-lib/armeabi-v7a/libavutil-55.so \
 lib/armeabi-v7a/libffplay.so \
-lib/armeabi-v7a/libpostproc-54.so \
-lib/armeabi-v7a/libswresample-2.so \
-lib/armeabi-v7a/libswscale-4.so \
 lib/armeabi-v7a/libBugly.so \
-lib/arm64-v8a/libavcodec-57.so \
-lib/arm64-v8a/libavdevice-57.so \
-lib/arm64-v8a/libavfilter-6.so \
-lib/arm64-v8a/libavformat-57.so \
-lib/arm64-v8a/libavutil-55.so \
 lib/arm64-v8a/libffplay.so \
-lib/arm64-v8a/libpostproc-54.so \
-lib/arm64-v8a/libswresample-2.so \
-lib/arm64-v8a/libswscale-4.so \
 lib/arm64-v8a/libBugly.so
 include $(BUILD_PREBUILT)

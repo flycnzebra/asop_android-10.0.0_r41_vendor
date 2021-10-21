@@ -858,8 +858,29 @@ service flash_recovery /system/bin/install-recovery.sh
     class main
     oneshot
 
+#save log to sdcard
+service zebralog system/bin/sh system/etc/zlog.sh
+    class late_start
+    user shell
+    group root shell sdcard_rw sdcard_r
+    oneshot
+    disabled
+    seclabel u:r:shell:s0
+
 service ratd /system/bin/ratd
     class main
     user root
     group root system
-    socket socket_ratd stream 0777 root system
+    socket socket_ratd stream 0660 root system
+
+service vlte /system/bin/vlte
+    class main
+    user root
+    group root radio system
+    socket vlte stream 0660 radio system
+
+service mctl /system/bin/mctl
+    class main
+    user root
+    group root system
+	disabled
