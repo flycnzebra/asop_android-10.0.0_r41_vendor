@@ -858,29 +858,33 @@ service flash_recovery /system/bin/install-recovery.sh
     class main
     oneshot
 
+#Two sim card
+service vendor.ril-daemon2 /vendor/bin/hw/zrild -c 2 -l /vendor/lib64/libvlte.so
+    class main
+    user radio
+    group radio cache inet misc audio log readproc wakelock
+    capabilities BLOCK_SUSPEND NET_ADMIN NET_RAW
+
 #save log to sdcard
-service zebralog system/bin/sh system/etc/zlog.sh
-    class late_start
+service zlog /system/bin/sh system/etc/zlog.sh
+    class main
     user shell
     group root shell sdcard_rw sdcard_r
-    oneshot
-    disabled
     seclabel u:r:shell:s0
 
 service ratd /system/bin/ratd
     class main
     user root
     group root system
-    socket socket_ratd stream 0660 root system
+    socket socket_ratd stream 0666 root system
 
 service vlte /system/bin/vlte
     class main
     user root
     group root radio system
-    socket vlte stream 0660 radio system
+    socket vlte stream 0666 radio system
 
 service mctl /system/bin/mctl
     class main
     user root
     group root system
-	disabled

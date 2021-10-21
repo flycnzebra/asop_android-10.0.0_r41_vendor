@@ -53,7 +53,7 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES += \
    system/core/include \
    system/media/camera/include
-LOCAL_MODULE := camera.sdm845
+LOCAL_MODULE := camera.zebra
 LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_MODULE_TAGS := optional
 LOCAL_PROPRIETARY_MODULE := true

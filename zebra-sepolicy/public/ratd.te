@@ -1,7 +1,7 @@
 type ratd, domain;
 type ratd_exec, system_file_type, exec_type, file_type;
 
-allow ratd self:capability { sys_module setuid setgid sys_admin net_raw net_admin chown };
+allow ratd self:capability { sys_module sys_nice setuid setgid sys_admin net_raw net_admin chown };
 allow ratd self:netlink_route_socket { read write create setopt bind getattr nlmsg_write };
 allow ratd self:udp_socket { create ioctl };
 allow ratd ratd_socket:sock_file { create read write };

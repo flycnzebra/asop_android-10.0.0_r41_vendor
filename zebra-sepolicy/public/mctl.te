@@ -33,3 +33,10 @@ allow servicemanager mctl:file { getattr read open };
 allow servicemanager mctl:process { getattr };
 allow surfaceflinger mctl:binder { call transfer };
 allow mediaserver mctl:binder { call transfer };
+
+allow mctl hwservicemanager_prop:file { read open getattr };
+allow mctl hwservicemanager_prop:binder { call };
+allow mctl hidl_manager_hwservice:hwservice_manager { find };
+#allow mctl hal_codec2_hwservice:hwservice_manager { find };
+
+allow hwservicemanager mctl:binder { transfer };

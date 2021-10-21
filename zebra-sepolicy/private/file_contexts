@@ -1,7 +1,7 @@
 ##########################
 # Devices
 #
-/dev/socket/ratd                                u:object_r:ratd_socket:s0
+/dev/socket/socket_ratd                         u:object_r:ratd_socket:s0
 /dev/socket/vlte                                u:object_r:vlte_socket:s0
 #############################
 # System files
