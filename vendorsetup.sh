@@ -31,6 +31,8 @@ cp -rvf $SRC/blueline/build/target/product/security/* $OBJ/build/target/product/
 cp -rvf $SRC/blueline/build/core/* $OBJ/build/core/
 #init.rc
 cp -v $SRC/blueline/system/core/rootdir/init.rc $OBJ/system/core/rootdir/
+#wifi verity
+cp -v $SRC/blueline/base/services/core/java/com/android/server/ConnectivityService.java $OBJ/frameworks/base/services/core/java/com/android/server/ConnectivityService.java
 #gps
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/location/GnssLocationProvider.java $OBJ/frameworks/base/services/core/java/com/android/server/location/
 #Launcher
