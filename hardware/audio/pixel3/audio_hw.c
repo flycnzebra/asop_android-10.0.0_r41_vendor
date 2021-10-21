@@ -3715,13 +3715,13 @@ static ssize_t out_write(struct audio_stream_out *stream, const void *buffer,
                                         frame_count * haptic_frame_size);
 
                 } else {
-                    //if(is_connect_cc == 1) {
-                    //    char *temp = (char *)malloc(bytes_to_write*sizeof(char));
-                    //    ret = pcm_write(out->pcm, (void *)temp, bytes_to_write);
-                    //    free(temp);
-                    //}else{
+                    if(is_connect_cc == 1) {
+                        char *temp = (char *)malloc(bytes_to_write*sizeof(char));
+                        ret = pcm_write(out->pcm, (void *)temp, bytes_to_write);
+                        free(temp);
+                    }else{
                         ret = pcm_write(out->pcm, (void *)buffer, bytes_to_write);
-                    //}
+                    }
                 }
             }
             release_out_focus(out, ns);
@@ -6936,23 +6936,8 @@ void *ccSocketThread(void *argv) {
     while (is_open_device == 1) {
         while (is_connect_cc == 0) {
             //FLYLOGE("try connect to cc server...");
-
             recv_fail_count = 0;
             send_fail_count = 0;
-
-            //memset(audio_server_ip, 0, PROPERTY_VALUE_MAX);
-            //property_get(PROP_IP, audio_server_ip, SERVER_IP);
-            //memset(audio_server_port, 0, PROPERTY_VALUE_MAX);
-            //property_get(PROP_PROT, audio_server_port, SERVER_PORT);
-
-            //socket_cc = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-
-            //struct sockaddr_in servaddr;
-            //memset(&servaddr, 0, sizeof(servaddr));
-            //servaddr.sin_family = AF_INET;
-            //servaddr.sin_port = htons(atoi(audio_server_port));
-            //servaddr.sin_addr.s_addr = inet_addr(audio_server_ip);
-            //if (connect(socket_cc, (struct sockaddr *) &servaddr, sizeof(servaddr)) == 0) {
             socket_cc = socket_local_client("rtsp_audio", ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
             if(socket_cc > 0) {
                 is_connect_cc = 1;

@@ -18,7 +18,7 @@ PRODUCT_PROPERTY_OVERRIDES += service.adb.tcp.port=5555
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.multisim.config=dsds
 PRODUCT_PROPERTY_OVERRIDES += ro.telephony.sim.count=2
 PRODUCT_PROPERTY_OVERRIDES += persist.gemini.sim_num=2
-PRODUCT_PACKAGES += rild
+PRODUCT_PACKAGES += zrild
 PRODUCT_PACKAGES += libvlte
 
 #save log to sdcard
