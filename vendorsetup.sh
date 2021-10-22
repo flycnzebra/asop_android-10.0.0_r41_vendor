@@ -39,13 +39,17 @@ cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/locati
 cp -rvf $SRC/blueline/packages/apps/Launcher3 $OBJ/packages/apps/
 #自定义sepolicy
 cp -v $SRC/blueline/device/google/crosshatch/BoardConfig-common._ $OBJ/device/google/crosshatch/BoardConfig-common.mk
-#zebra hidl server
-cp -v $SRC/blueline/device/google/crosshatch/manifest.xml $OBJ/device/google/crosshatch/manifest.xml
 #close selinux
 cp -v $SRC/blueline/system/core/init/selinux.cpp $OBJ/system/core/init/
 #multi-stream
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/ConnectivityService.java $OBJ/frameworks/base/services/core/java/com/android/server/
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/connectivity/ZebraVpn.java $OBJ/frameworks/base/services/core/java/com/android/server/connectivity/
+#zebra hidl server
+cp -v $SRC/blueline/device/google/crosshatch/manifest.xml $OBJ/device/google/crosshatch/manifest.xml
+#cp -rvf $SRC/blueline/hardware/interfaces/zebra $OBJ/hardware/interfaces/
+#mv -v $OBJ/hardware/interfaces/zebra/Android._ OBJ/hardware/interfaces/zebra/Android.bp
+#mv -v $OBJ/hardware/interfaces/zebra/1.0/Android._ OBJ/hardware/interfaces/zebra/1.0/Android.bp
+#mv -v $OBJ/hardware/interfaces/zebra/1.0/default/Android._ OBJ/hardware/interfaces/zebra/1.0/default/Android.bp
 #不编译Android10的新功能llkd
 mv -v $OBJ/system/core/llkd/Android.bp $OBJ/system/core/llkd/Android._
 mv -v $OBJ/system/core/llkd/tests/Android.bp $OBJ/system/core/llkd/tests/Android._
