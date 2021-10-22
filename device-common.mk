@@ -18,7 +18,7 @@ PRODUCT_PROPERTY_OVERRIDES += service.adb.tcp.port=5555
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.multisim.config=dsds
 PRODUCT_PROPERTY_OVERRIDES += ro.telephony.sim.count=2
 PRODUCT_PROPERTY_OVERRIDES += persist.gemini.sim_num=2
-PRODUCT_PACKAGES += zrild
+PRODUCT_PACKAGES += rild
 PRODUCT_PACKAGES += libvlte
 
 #save log to sdcard
@@ -35,8 +35,11 @@ PRODUCT_PACKAGES += libswresample-2
 PRODUCT_PACKAGES += libswscale-4
 PRODUCT_PACKAGES += libyuvz
 
-#c10 m-stream
+#c10 multi-stream
 PRODUCT_PROPERTY_OVERRIDES += persist.radio.mcwill.pid=81.98.97.88
+PRODUCT_PROPERTY_OVERRIDES += persist.sys.mag.ip=103.5.126.153
+PRODUCT_PROPERTY_OVERRIDES += persist.sys.mag.dns=172.16.251.77
+PRODUCT_PROPERTY_OVERRIDES += persist.sys.mag.dns2=8.8.8.8
 PRODUCT_PACKAGES += ratd
 PRODUCT_PACKAGES += mpc
 PRODUCT_PACKAGES += lib-mpd

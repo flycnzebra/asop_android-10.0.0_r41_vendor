@@ -858,13 +858,6 @@ service flash_recovery /system/bin/install-recovery.sh
     class main
     oneshot
 
-#Two sim card
-service vendor.ril-daemon2 /vendor/bin/hw/zrild -c 2 -l /vendor/lib64/libvlte.so
-    class main
-    user radio
-    group radio cache inet misc audio log readproc wakelock
-    capabilities BLOCK_SUSPEND NET_ADMIN NET_RAW
-
 #save log to sdcard
 service zlog /system/bin/sh system/etc/zlog.sh
     class main

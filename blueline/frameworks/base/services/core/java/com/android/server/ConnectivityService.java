@@ -153,6 +153,7 @@ import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 import android.util.SparseIntArray;
 import android.util.Xml;
+import android.zebra.FlyLog;
 
 import com.android.internal.R;
 import com.android.internal.annotations.GuardedBy;
@@ -188,6 +189,7 @@ import com.android.server.connectivity.PermissionMonitor;
 import com.android.server.connectivity.ProxyTracker;
 import com.android.server.connectivity.Tethering;
 import com.android.server.connectivity.Vpn;
+import com.android.server.connectivity.ZebraVpn;
 import com.android.server.connectivity.tethering.TetheringDependencies;
 import com.android.server.net.BaseNetdEventCallback;
 import com.android.server.net.BaseNetworkObserver;
@@ -251,7 +253,7 @@ public class ConnectivityService extends IConnectivityManager.Stub
      * (preferably via runtime resource overlays).
      */
     private static final String DEFAULT_CAPTIVE_PORTAL_HTTP_URL =
-            "http://connect.rom.miui.com/generate_204";
+            "http://connectivitycheck.gstatic.com/generate_204";
 
     // TODO: create better separation between radio types and network types
 
@@ -2131,6 +2133,13 @@ public class ConnectivityService extends IConnectivityManager.Stub
         mHandler.sendMessage(mHandler.obtainMessage(EVENT_SYSTEM_READY));
 
         mPermissionMonitor.startMonitoring();
+
+        /**add by flyzebra 20211022 mp add network start**/
+        FlyLog.d("tsylog tun0 receive cregisterReceiver");
+        final IntentFilter tun0Filter = new IntentFilter();
+        tun0Filter.addAction("intent.action.UPDATE_MP_STATUS_FOR_LINK_MANAGER");
+        mContext.registerReceiver(mTun0Receiver, tun0Filter);
+        /**add by flyzebra 20211022 mp add network end**/
     }
 
     /**
@@ -4799,6 +4808,18 @@ public class ConnectivityService extends IConnectivityManager.Stub
                 updateLockdownVpn();
             }
         }
+
+        /**add by flyzebra 20211022 mp add network start**/
+        synchronized(mZebraVpns) {
+            ZebraVpn zebraVpn = mZebraVpns.get(userId);
+            if (zebraVpn != null) {
+                FlyLog.e("Starting user already has a VPN");
+                return;
+            }
+            zebraVpn = new ZebraVpn(mHandler.getLooper(), mContext, mNMS, userId);
+            mZebraVpns.put(userId, zebraVpn);
+        }
+        /**add by flyzebra 20211022 mp add network end**/
     }
 
     private void onUserStop(int userId) {
@@ -4811,6 +4832,17 @@ public class ConnectivityService extends IConnectivityManager.Stub
             userVpn.onUserStopped();
             mVpns.delete(userId);
         }
+
+        /**add by flyzebra 20211022 mp add network start**/
+        synchronized (mZebraVpns) {
+            ZebraVpn zebraVpn = mZebraVpns.get(userId);
+            if (zebraVpn == null) {
+                FlyLog.e("Stopped user has no VPN");
+                return;
+            }
+            mZebraVpns.delete(userId);
+        }
+        /**add by flyzebra 20211022 mp add network end**/
     }
 
     private void onUserAdded(int userId) {
@@ -6108,7 +6140,8 @@ public class ConnectivityService extends IConnectivityManager.Stub
                 break;
             }
         }
-        nai.asyncChannel.disconnect();
+        /** Disable by flyzebra for multi-stream **/
+        //nai.asyncChannel.disconnect();
     }
 
     private void handleLingerComplete(NetworkAgentInfo oldNetwork) {
@@ -7178,4 +7211,36 @@ public class ConnectivityService extends IConnectivityManager.Stub
             return mTNS;
         }
     }
+
+    /**add by flyzebra 20211022 mp add network start**/
+    @GuardedBy("mCootelVpns")
+    private final SparseArray<ZebraVpn> mZebraVpns = new SparseArray<ZebraVpn>();
+    private BroadcastReceiver mTun0Receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            FlyLog.d("tsylog receive connect intent:" + intent.toUri(0));
+            try {
+                if ("intent.action.UPDATE_MP_STATUS_FOR_LINK_MANAGER".endsWith(intent.getAction())) {
+                    int wifitun0 = intent.getIntExtra("NETWORK_LINK_WIFI", 0);
+                    int mobiletun0 = intent.getIntExtra("NETWORK_LINK_4G", 0);
+                    int mcwilltun0 = intent.getIntExtra("NETWORK_LINK_MCWILL", 0);
+                    int user = UserHandle.getUserId(Binder.getCallingUid());
+                    if (wifitun0 == 1 || mobiletun0 == 1 || mcwilltun0 == 1) {
+                        synchronized (mZebraVpns) {
+                            mZebraVpns.get(user).agentConnect();
+                        }
+                    }else{
+                        synchronized (mZebraVpns) {
+                            mZebraVpns.get(user).agentDisconnect();
+                        }
+                    }
+                    FlyLog.d("tsylog set network dns finish");
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+                FlyLog.e("tsylog set network dns error!"+e.toString());
+            }
+        }
+    };
+    /**add by flyzebra 20211022 mp add network end**/
 }

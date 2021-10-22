@@ -40,3 +40,4 @@ allow mctl hidl_manager_hwservice:hwservice_manager { find };
 #allow mctl hal_codec2_hwservice:hwservice_manager { find };
 
 allow hwservicemanager mctl:binder { transfer };
+allow mctl hwservicemanager:binder { call transfer };

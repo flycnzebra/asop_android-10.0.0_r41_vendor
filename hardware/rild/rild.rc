@@ -1,4 +1,4 @@
-service vendor.ril-daemon /vendor/bin/hw/rild
+service vendor.zril-daemon /vendor/bin/hw/rild -c 2 -l /vendor/lib64/libvlte.so
     class main
     user radio
     group radio cache inet misc audio log readproc wakelock
