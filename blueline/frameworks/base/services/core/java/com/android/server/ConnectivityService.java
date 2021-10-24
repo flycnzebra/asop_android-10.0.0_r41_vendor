@@ -7213,12 +7213,12 @@ public class ConnectivityService extends IConnectivityManager.Stub
     }
 
     /**add by flyzebra 20211022 mp add network start**/
-    @GuardedBy("mCootelVpns")
+    @GuardedBy("mZebraVpns")
     private final SparseArray<ZebraVpn> mZebraVpns = new SparseArray<ZebraVpn>();
     private BroadcastReceiver mTun0Receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            FlyLog.d("tsylog receive connect intent:" + intent.toUri(0));
+            //FlyLog.d("tsylog receive connect intent:" + intent.toUri(0));
             try {
                 if ("intent.action.UPDATE_MP_STATUS_FOR_LINK_MANAGER".endsWith(intent.getAction())) {
                     int wifitun0 = intent.getIntExtra("NETWORK_LINK_WIFI", 0);
@@ -7234,7 +7234,7 @@ public class ConnectivityService extends IConnectivityManager.Stub
                             mZebraVpns.get(user).agentDisconnect();
                         }
                     }
-                    FlyLog.d("tsylog set network dns finish");
+                    //FlyLog.d("tsylog set network dns finish");
                 }
             }catch (Exception e){
                 e.printStackTrace();
