@@ -1,4 +1,6 @@
-type hal_zebra, domain;
-type hal_zebra_exec, exec_type, vendor_file_type, file_type;
+hal_attribute(zebra);
 
-init_daemon_domain(hal_zebra)
+binder_call(hal_zebra_client, hal_zebra_server)
+binder_call(hal_zebra_server, hal_zebra_client)
+
+hal_attribute_hwservice(hal_zebra, hal_zebra_hwservice)

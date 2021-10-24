@@ -1,3 +1,3 @@
-# add by tangshiyuan for ratd
+# add by flyzebra for multi-stream
 type ratd_socket, file_type, coredomain_socket;
 type vlte_socket, file_type, coredomain_socket;

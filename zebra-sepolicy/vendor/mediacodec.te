@@ -1,2 +1,0 @@
-allow mctl mediacodec:binder { call transfer };
-allow mediacodec mctl:binder { transfer };

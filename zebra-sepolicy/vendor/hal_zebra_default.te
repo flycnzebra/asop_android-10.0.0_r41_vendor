@@ -1,0 +1,7 @@
+type hal_zebra_default, domain;
+hal_server_domain(hal_zebra_default, hal_zebra)
+
+type hal_zebra_default_exec, vendor_file_type, exec_type, file_type;
+init_daemon_domain(hal_zebra_default)
+
+hal_client_domain(hal_zebra_default, hal_zebra)
