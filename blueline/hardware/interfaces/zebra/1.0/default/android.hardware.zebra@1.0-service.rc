@@ -2,4 +2,3 @@ service vendor.zebra-hal-1-0 /vendor/bin/hw/android.hardware.zebra@1.0-service
     class hal
     user system
     group system
-    seclabel u:r:hal_zebra_default_exec:s0

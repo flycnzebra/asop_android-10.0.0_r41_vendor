@@ -1,4 +1,5 @@
 ##########################
 # HIDL
 ##########################
+/vendor/bin/hw/zrild                                    u:object_r:rild_exec:s0
 /vendor/bin/hw/android\.hardware\.zebra@1\.0-service    u:object_r:hal_zebra_default_exec:s0
