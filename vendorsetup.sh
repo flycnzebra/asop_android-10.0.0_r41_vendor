@@ -47,7 +47,7 @@ cp -v $SRC/blueline/frameworks/base/core/res/AndroidManifest.xml $OBJ/frameworks
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/ConnectivityService.java $OBJ/frameworks/base/services/core/java/com/android/server/
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/connectivity/ZebraVpn.java $OBJ/frameworks/base/services/core/java/com/android/server/connectivity/
 #zebra hidl server
-cp -v $SRC/blueline/device/google/crosshatch/manifest.xml $OBJ/device/google/crosshatch/manifest.xml
+cp -v $SRC/blueline/system/libhidl/vintfdata/manifest.xml $OBJ/system/libhidl/vintfdata/
 cp -rvf $SRC/blueline/hardware/interfaces/zebra $OBJ/hardware/interfaces/
 cp -rvf $SRC/blueline/build/make/target/product/gsi $OBJ/build/make/target/product/
 mv -v $OBJ/hardware/interfaces/zebra/Android._ $OBJ/hardware/interfaces/zebra/Android.bp
