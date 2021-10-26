@@ -1,0 +1,5 @@
+package android.hardware.zebra@1.0;
+
+interface IZebraCallback {
+    notifyEvent(vec<int8_t> event);
+};

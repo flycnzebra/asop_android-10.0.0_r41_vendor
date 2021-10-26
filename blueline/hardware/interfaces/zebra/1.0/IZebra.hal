@@ -1,5 +1,13 @@
 package android.hardware.zebra@1.0;
 
+import IZebraCallback;
+
 interface IZebra {
-    helloWorld(string name) generates (string result);
+
+     sendEvent(vec<int8_t> event) generates (int32_t result);
+
+     registerCallback(IZebraCallback callback) generates (int32_t result);
+
+     unRegisterCallback(IZebraCallback callback) generates (int32_t result);
+
 };
