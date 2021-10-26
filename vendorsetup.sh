@@ -10,6 +10,7 @@ OBJ=.
 cp -v $SRC/rbuild.sh $OBJ/
 #ZebrasSystemServer
 cp -v $SRC/blueline/frameworks/base/Android._ $OBJ/frameworks/base/Android.bp
+cp -v $SRC/blueline/frameworks/base/services/core/Android._ $OBJ/frameworks/base/services/core/Android.bp
 cp -v $SRC/blueline/frameworks/base/core/java/android/app/SystemServiceRegistry.java $OBJ/frameworks/base/core/java/android/app/SystemServiceRegistry.java
 cp -v $SRC/blueline/frameworks/base/core/java/android/content/Context.java $OBJ/frameworks/base/core/java/android/content/Context.java
 cp -v $SRC/blueline/frameworks/base/services/java/com/android/server/SystemServer.java $OBJ/frameworks/base/services/java/com/android/server/SystemServer.java

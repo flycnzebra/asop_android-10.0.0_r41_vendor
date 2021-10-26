@@ -21,16 +21,16 @@ echo "$oldversion"-"$newversion"
 
 if [ "$1" == "-c1" ];then
 echo "################<make installclean>################"
-make installclean -j40
+make installclean -j24
 fi
 
 if [ "$1" == "-c2" ];then
 echo "################<make clean>################"
-make clean -j40
+make clean -j24
 fi
 
 echo "################<make project>################"
-make -j40
+make -j24
 if [ ! -f "./out/target/product/blueline/system.img" ];then
 	echo "make error! not find system.img file!";
 	exit 1;
@@ -38,11 +38,11 @@ fi
 
 ##echo "################<make signapk>################"
 #cd build/tools/signapk/
-#mm -j40
+#mm -j24
 #cd $android_dir
 #
 ##echo "################<make otapackage>################"
-#make otapackage -j40
+#make otapackage -j24
 #if [ ! -f "./out/target/product/blueline/obj/PACKAGING/target_files_intermediates/aosp_blueline-target_files-eng.tangshiyuan/IMAGES/system.img" ];then
 #	echo "make error! not find ota system.img file!";
 #	exit 1;
