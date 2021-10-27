@@ -3259,7 +3259,7 @@ public abstract class Context {
             //@hide: SYSTEM_UPDATE_SERVICE,
             //@hide: TIME_DETECTOR_SERVICE,
             PERMISSION_SERVICE,
-			OCTOPU_SERVICE,
+			ZEBRA_SERVICE,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface ServiceName {}
@@ -4692,7 +4692,7 @@ public abstract class Context {
      *
      * @see #getSystemService
      */
-    public static final String OCTOPU_SERVICE = "zebra";
+    public static final String ZEBRA_SERVICE = "zebra";
 
     /**
      * Determine whether the given permission is allowed for a particular

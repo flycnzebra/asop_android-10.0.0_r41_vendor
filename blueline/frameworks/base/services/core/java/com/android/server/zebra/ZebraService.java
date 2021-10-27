@@ -1,20 +1,27 @@
 package com.android.server.zebra;
 
+import static android.view.Display.DEFAULT_DISPLAY;
+import static android.view.Display.INVALID_DISPLAY;
+
 import android.content.Context;
-import android.content.Intent;
-import android.zebra.FlyLog;
-import android.zebra.IZebraService;
-import android.zebra.ZebraListener;
-import android.zebra.ZebraManager;
-import android.os.Build;
+import android.hardware.input.InputManager;
+import android.hardware.zebra.V1_0.IZebra;
+import android.hardware.zebra.V1_0.IZebraCallback;
 import android.os.Bundle;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
-import android.os.Binder;
-import android.os.UserHandle;
-import android.os.IBinder;
-import android.provider.Settings;
-import android.util.ArrayMap;
+import android.os.SystemClock;
+import android.view.InputDevice;
+import android.view.KeyCharacterMap;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.zebra.FlyLog;
+import android.zebra.IZebraService;
+import android.zebra.ZebraListener;
+
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * @hide ClassName: ZebraService
@@ -24,48 +31,34 @@ import android.util.ArrayMap;
  * Date: 20-1-8 下午5:42
  */
 public class ZebraService extends IZebraService.Stub {
-    private static final String TAG = "ZebraService";
     private Context mContext;
-    private ArrayMap<IBinder, Integer> mRecords = new ArrayMap<IBinder, Integer>();
-    private RemoteCallbackList<ZebraListener> mZebraListeners =
-        new RemoteCallbackList<ZebraListener>() {
-            @Override
-            public void onCallbackDied(ZebraListener callback) {
-                synchronized(mRecords) {
-                    mRecords.remove(callback.asBinder());
-                }
-            }
-        };
+    private static RemoteCallbackList<ZebraListener> mZebraListeners = new RemoteCallbackList<>();
+    private final Object mLock = new Object();
+
     private Bundle sensorBundle;
     private Bundle gpsBundle;
     private Bundle cellBundle;
     private Bundle wifiBundle;
-    private Bundle phonebookBundle;
-    private Bundle webcamBundle;
-    private Bundle smsBundle;
+    private IZebra hidlZebra;
 
     public ZebraService(Context context) {
         mContext = context;
-    }
-
-    @Override
-    public void registerListener(ZebraListener zebraListener, int type) throws RemoteException {
-        if (type <= 0) throw new RemoteException(TAG + " Error type: " + type);
-
-        synchronized(mRecords) {
-            IBinder registerIBinder = zebraListener.asBinder();
-            if (mRecords.put(registerIBinder, type) == null) {
-                mZebraListeners.register(zebraListener);
-            }
+        try {
+            hidlZebra = IZebra.getService();
+            hidlZebra.registerCallback(new ZebraHidlCallBack());
+        } catch (Exception e) {
+            FlyLog.e(e.toString());
         }
     }
 
     @Override
-    public void unregisterListener(ZebraListener zebraListener) throws RemoteException {
-        synchronized(mRecords) {
-            mZebraListeners.unregister(zebraListener);
-            mRecords.remove(zebraListener.asBinder());
-        }
+    public void registerListener(ZebraListener ZebraListener) throws RemoteException {
+        mZebraListeners.register(ZebraListener);
+    }
+
+    @Override
+    public void unRegisterListener(ZebraListener ZebraListener) throws RemoteException {
+        mZebraListeners.unregister(ZebraListener);
     }
 
     @Override
@@ -113,160 +106,118 @@ public class ZebraService extends IZebraService.Stub {
     }
 
     @Override
-    public void upPhonebookData(Bundle bundle) throws RemoteException {
-        phonebookBundle = bundle;
-        notifyPhonebookChange(phonebookBundle);
+    public List<String> getWhiteList() throws RemoteException {
+        return null;
     }
 
     @Override
-    public Bundle getPhonebookData() throws RemoteException {
-        return phonebookBundle;
-    }
-
-    @Override
-    public void upWebcamData(Bundle bundle) throws RemoteException {
-        webcamBundle = bundle;
-        notifyWebcamChange(webcamBundle);
-    }
-
-    @Override
-    public Bundle getWebcamData() throws RemoteException {
-        return webcamBundle;
-    }
-
-    @Override
-    public void upSmsData(Bundle bundle) throws RemoteException {
-        smsBundle = bundle;
-        notifySmsChange(smsBundle);
-    }
-
-    @Override
-    public Bundle getSmsData() throws RemoteException {
-        return smsBundle;
-    }
-
-    private void notifySensorChange(final Bundle bundle) {
-        synchronized (mRecords) {
-            mZebraListeners.broadcast(listener -> {
-                try {
-                    Integer recordType = mRecords.get(listener.asBinder());
-                    if (recordType != null &&
-                            ((recordType.intValue() & ZebraManager.LISTEN_TYPE_SENSOR) > 0)) {
-                        listener.notifySensorChange(bundle);
-                    }
-                } catch (Exception e) {
-                    FlyLog.e(e.toString());
-                }
-            });
-        }
-    }
-
-    private void notifyGpsChange(final Bundle bundle) {
-        synchronized (mRecords) {
-            mZebraListeners.broadcast(listener -> {
-                try {
-                    Integer recordType = mRecords.get(listener.asBinder());
-                    if (recordType != null &&
-                            ((recordType.intValue() & ZebraManager.LISTEN_TYPE_GPS) > 0)) {
-                        listener.notifyGpsChange(bundle);
-                    }
-                } catch (Exception e) {
-                    FlyLog.e(e.toString());
-                }
-            });
-        }
-    }
-
-    private void notifyCellChange(final Bundle bundle) {
-        synchronized (mRecords) {
-            mZebraListeners.broadcast(listener -> {
-                try {
-                    Integer recordType = mRecords.get(listener.asBinder());
-                    if (recordType != null &&
-                            ((recordType.intValue() & ZebraManager.LISTEN_TYPE_CELL) > 0)) {
-                        listener.notifyCellChange(bundle);
-                    }
-                } catch (Exception e) {
-                    FlyLog.e(e.toString());
-                }
-            });
-        }
-    }
-
-    private void notifyWifiChange(final Bundle bundle) {
-        synchronized (mRecords) {
-            mZebraListeners.broadcast(listener -> {
-                try {
-                    Integer recordType = mRecords.get(listener.asBinder());
-                    if (recordType != null &&
-                            ((recordType.intValue() & ZebraManager.LISTEN_TYPE_WIFI) > 0)) {
-                        listener.notifyWifiChange(bundle);
-                    }
-                } catch (Exception e) {
-                    FlyLog.e(e.toString());
-                }
-            });
-        }
-    }
-
-    private void notifyPhonebookChange(final Bundle bundle) {
-        synchronized (mRecords) {
-            mZebraListeners.broadcast(listener -> {
-                try {
-                    Integer recordType = mRecords.get(listener.asBinder());
-                    if (recordType != null &&
-                            ((recordType.intValue() & ZebraManager.LISTEN_TYPE_PHONEBOOK) > 0)) {
-                        listener.notifyPhonebookChange(bundle);
-                    }
-                } catch (Exception e) {
-                    FlyLog.e(e.toString());
-                }
-            });
-        }
-    }
-
-    private void notifyWebcamChange(final Bundle bundle) {
-        synchronized (mRecords) {
-            mZebraListeners.broadcast(listener -> {
-                try {
-                    Integer recordType = mRecords.get(listener.asBinder());
-                    if (recordType != null &&
-                            ((recordType.intValue() & ZebraManager.LISTEN_TYPE_WEBCAM) > 0)) {
-                        listener.notifyWebcamChange(bundle);
-                    }
-                } catch (Exception e) {
-                    FlyLog.e(e.toString());
-                }
-            });
-        }
-    }
-
-    private void notifySmsChange(final Bundle bundle) {
-        synchronized (mRecords) {
-            mZebraListeners.broadcast(listener -> {
-                try {
-                    Integer recordType = mRecords.get(listener.asBinder());
-                    if (recordType != null &&
-                            ((recordType.intValue() & ZebraManager.LISTEN_TYPE_SMS) > 0)) {
-                        listener.notifySmsChange(bundle);
-                    }
-                } catch (Exception e) {
-                    FlyLog.e(e.toString());
-                }
-            });
-        }
-    }
-
-    @Override
-    public void setAirplaneModeOn(boolean enabling) {
-    }
-
-    @Override
-    public boolean usbDhcpWifi(boolean opening) {
+    public boolean addWhiteProcess(String packName) throws RemoteException {
         return false;
     }
 
     @Override
-    public void usbPcWifi(boolean opening, String ipAddress, String gateway) {
+    public boolean delWhiteProcess(String packName) throws RemoteException {
+        return false;
+    }
+
+    private void notifySensorChange(final Bundle bundle) {
+        synchronized (mLock) {
+            final int N = mZebraListeners.beginBroadcast();
+            for (int i = 0; i < N; i++) {
+                try {
+                    mZebraListeners.getBroadcastItem(i).notifySensorChange(bundle);
+                } catch (RemoteException e) {
+                    FlyLog.e(e.toString());
+                } catch (Exception e) {
+                    FlyLog.e(e.toString());
+                }
+            }
+            mZebraListeners.finishBroadcast();
+        }
+    }
+
+    private void notifyGpsChange(final Bundle bundle) {
+        synchronized (mLock) {
+            final int N = mZebraListeners.beginBroadcast();
+            for (int i = 0; i < N; i++) {
+                try {
+                    mZebraListeners.getBroadcastItem(i).notifyGpsChange(bundle);
+                } catch (RemoteException e) {
+                    FlyLog.e(e.toString());
+                } catch (Exception e) {
+                    FlyLog.e(e.toString());
+                }
+            }
+            mZebraListeners.finishBroadcast();
+        }
+    }
+
+    private void notifyCellChange(final Bundle bundle) {
+        synchronized (mLock) {
+            final int N = mZebraListeners.beginBroadcast();
+            for (int i = 0; i < N; i++) {
+                try {
+                    mZebraListeners.getBroadcastItem(i).notifyCellChange(bundle);
+                } catch (RemoteException e) {
+                    FlyLog.e(e.toString());
+                } catch (Exception e) {
+                    FlyLog.e(e.toString());
+                }
+            }
+            mZebraListeners.finishBroadcast();
+        }
+    }
+
+    private void notifyWifiChange(final Bundle bundle) {
+        synchronized (mLock) {
+            final int N = mZebraListeners.beginBroadcast();
+            for (int i = 0; i < N; i++) {
+                try {
+                    mZebraListeners.getBroadcastItem(i).notifyWifiChange(bundle);
+                } catch (RemoteException e) {
+                    FlyLog.e(e.toString());
+                } catch (Exception e) {
+                    FlyLog.e(e.toString());
+                }
+            }
+            mZebraListeners.finishBroadcast();
+        }
+    }
+
+    class ZebraHidlCallBack extends IZebraCallback.Stub {
+
+        private void sendKeyEvent(int keyCode) {
+            final long now = SystemClock.uptimeMillis();
+            KeyEvent key1 =new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0);
+            InputManager.getInstance().injectInputEvent(key1, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
+            KeyEvent key2 = new KeyEvent(now, now,KeyEvent.ACTION_UP, keyCode, 0);
+            InputManager.getInstance().injectInputEvent(key2, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
+        }
+
+        private void sendTouchEvent(int action, float x, float y, float presure) {
+            final long now = SystemClock.uptimeMillis();
+            MotionEvent touch = MotionEvent.obtain(now, now, action, x, y, 1.0f, 1.0f, 0, 1.0f, presure, InputDevice.SOURCE_TOUCHSCREEN, 0);
+            InputManager.getInstance().injectInputEvent(touch, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
+        }
+
+        @Override
+        public void notifyEvent(ArrayList<Byte> event) throws RemoteException {
+            try {
+                if (event.get(2) == (byte) 0x03 && event.get(3) == (byte) 0x01) {
+                    int x = (event.get(18)&0xFF)<<8|(event.get(19)&0xFF);
+                    int y = (event.get(20)&0xFF)<<8|(event.get(21)&0xFF);;
+                    int w = (event.get(22)&0xFF)<<8|(event.get(23)&0xFF);;
+                    int h = (event.get(24)&0xFF)<<8|(event.get(25)&0xFF);;
+                    x = x * 1080 / w;
+                    y = y * 2160 / h;
+                    int action = (event.get(17)&0xFF)==0x02 ? KeyEvent.ACTION_UP : KeyEvent.ACTION_DOWN;
+                    sendTouchEvent(action,x, y, 1.0f);
+                } else if (event.get(2) == (byte) 0x03 && event.get(3) == (byte) 0x02) {
+                    sendKeyEvent((int) event.get(17));
+                }
+            }catch (Exception e){
+                FlyLog.e(e.toString());
+            }
+        }
     }
 }

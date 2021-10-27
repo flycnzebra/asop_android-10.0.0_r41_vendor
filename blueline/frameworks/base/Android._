@@ -695,6 +695,7 @@ java_defaults {
 
         "core/java/android/zebra/IZebraService.aidl",
         "core/java/android/zebra/ZebraListener.aidl",
+        "core/java/android/zebra/IZebraProcessService.aidl",
     ],
 
     aidl: {

@@ -5,12 +5,11 @@ import android.zebra.ZebraListener;
 import android.os.Bundle;
 
 // Declare any non-default types here with import statements
-
 interface IZebraService {
 
-    void registerListener(ZebraListener zebraListener, int type);
+    void registerListener(ZebraListener zebraListener);
 
-    void unregisterListener(ZebraListener zebraListener);
+    void unRegisterListener(ZebraListener zebraListener);
 
     void upSensorData(inout Bundle bundle);
 
@@ -28,21 +27,11 @@ interface IZebraService {
 
     Bundle getWifiData();
 
-    void upPhonebookData(inout Bundle bundle);
+    //OcProcessService
+    List<String> getWhiteList();
 
-    Bundle getPhonebookData();
+    boolean addWhiteProcess(String packName);
 
-    void upSmsData(inout Bundle bundle);
+    boolean delWhiteProcess(String packName);
 
-    Bundle getSmsData();
-
-    void upWebcamData(inout Bundle bundle);
-
-    Bundle getWebcamData();
-
-    void setAirplaneModeOn(boolean enabling);
-
-    boolean usbDhcpWifi(boolean opening);
-
-    void usbPcWifi(boolean opening, String ipAddress, String gateway);
 }

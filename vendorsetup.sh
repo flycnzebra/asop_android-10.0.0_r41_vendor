@@ -17,10 +17,13 @@ cp -v $SRC/blueline/frameworks/base/services/java/com/android/server/SystemServe
 mkdir -p $OBJ/frameworks/base/core/java/android/zebra
 cp -v $SRC/blueline/frameworks/base/core/java/android/zebra/FlyLog.java $OBJ/frameworks/base/core/java/android/zebra/FlyLog.java
 cp -v $SRC/blueline/frameworks/base/core/java/android/zebra/IZebraService.aidl $OBJ/frameworks/base/core/java/android/zebra/IZebraService.aidl
+cp -v $SRC/blueline/frameworks/base/core/java/android/zebra/IZebraProcessService.aidl $OBJ/frameworks/base/core/java/android/zebra/IZebraProcessService.aidl
 cp -v $SRC/blueline/frameworks/base/core/java/android/zebra/ZebraListener.aidl $OBJ/frameworks/base/core/java/android/zebra/ZebraListener.aidl
 cp -v $SRC/blueline/frameworks/base/core/java/android/zebra/ZebraManager.java $OBJ/frameworks/base/core/java/android/zebra/ZebraManager.java
 mkdir -p $OBJ/frameworks/base/services/core/java/com/android/server/zebra
+cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/zebra/Command.java $OBJ/frameworks/base/services/core/java/com/android/server/zebra/Command.java
 cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/zebra/ZebraService.java $OBJ/frameworks/base/services/core/java/com/android/server/zebra/ZebraService.java
+cp -v $SRC/blueline/frameworks/base/services/core/java/com/android/server/zebra/ZebraProcessService.java $OBJ/frameworks/base/services/core/java/com/android/server/zebra/ZebraProcessService.java
 #make api-stubs-docs-update-current-api -j24
 cp -v $SRC/blueline/frameworks/base/api/current.txt $OBJ/frameworks/base/api/current.txt
 #copy blueline mk files

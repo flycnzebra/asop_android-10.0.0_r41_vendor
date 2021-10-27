@@ -15,9 +15,4 @@ interface ZebraListener {
 
     oneway void notifyWifiChange(in Bundle bundle);
 
-    oneway void notifyPhonebookChange(in Bundle bundle);
-
-    oneway void notifyWebcamChange(in Bundle bundle);
-
-    oneway void notifySmsChange(in Bundle bundle);
 }

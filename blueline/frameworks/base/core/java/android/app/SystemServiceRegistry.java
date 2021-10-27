@@ -223,11 +223,11 @@ final class SystemServiceRegistry {
         //CHECKSTYLE:OFF IndentationCheck
 
         //add by tangshiyuan 20210301
-        registerService(Context.OCTOPU_SERVICE, ZebraManager.class,
+        registerService(Context.ZEBRA_SERVICE, ZebraManager.class,
                 new CachedServiceFetcher<ZebraManager>() {
                     @Override
                     public ZebraManager createService(ContextImpl ctx) {
-                        IBinder b = ServiceManager.getService(Context.OCTOPU_SERVICE);
+                        IBinder b = ServiceManager.getService(Context.ZEBRA_SERVICE);
                         return new ZebraManager(ctx, IZebraService.Stub.asInterface(b));
                     }});
         //add end

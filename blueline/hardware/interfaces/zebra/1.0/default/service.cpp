@@ -7,8 +7,8 @@ using android::hardware::zebra::V1_0::IZebra;
 using android::hardware::defaultPassthroughServiceImplementation;
 
 int main() {
-    ALOGE("#####################################");
-    ALOGE("####zebra hidl service version 1.0###");
-    ALOGE("#####################################");
+    ALOGE("######################################");
+    ALOGE("####zebra hidl service version 1.0####");
+    ALOGE("######################################");
     return defaultPassthroughServiceImplementation<IZebra>(2);
 }

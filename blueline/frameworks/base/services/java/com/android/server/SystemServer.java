@@ -1111,7 +1111,7 @@ public final class SystemServer {
         //add by tangshiyuan 20210301
         try {
             Slog.i(TAG, "starting ZebraService ");
-            ServiceManager.addService(Context.OCTOPU_SERVICE, new ZebraService(context));
+            ServiceManager.addService(Context.ZEBRA_SERVICE, new ZebraService(context));
         } catch (Throwable e) {
             reportWtf("starting ZebraService error!", e);
         }
