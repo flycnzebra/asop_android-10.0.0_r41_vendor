@@ -19,9 +19,9 @@ import android.zebra.FlyLog;
 import android.zebra.IZebraService;
 import android.zebra.ZebraListener;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-
 
 /**
  * @hide ClassName: ZebraService
@@ -184,40 +184,104 @@ public class ZebraService extends IZebraService.Stub {
         }
     }
 
-    class ZebraHidlCallBack extends IZebraCallback.Stub {
+    class ZebraHidlCallBack extends IZebraCallback.Stub implements Runnable {
+        private ByteBuffer eventBuf = ByteBuffer.allocate(1024);
+        private final Object mEventLock = new Object();
+        byte head[] = new byte[16];
+        byte tEvent[] = new byte[10];
+        byte kEvent[] = new byte[2];
+        final float DEFAULT_SIZE = 1.0f;
+        final int DEFAULT_META_STATE = 0;
+        final float DEFAULT_PRECISION_X = 1.0f;
+        final float DEFAULT_PRECISION_Y = 1.0f;
+        final int DEFAULT_EDGE_FLAGS = 0;
 
-        private void sendKeyEvent(int keyCode) {
-            final long now = SystemClock.uptimeMillis();
-            KeyEvent key1 =new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0);
-            InputManager.getInstance().injectInputEvent(key1, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
-            KeyEvent key2 = new KeyEvent(now, now,KeyEvent.ACTION_UP, keyCode, 0);
-            InputManager.getInstance().injectInputEvent(key2, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
+        ZebraHidlCallBack() {
+            new Thread(this).start();
         }
 
-        private void sendTouchEvent(int action, float x, float y, float presure) {
-            final long now = SystemClock.uptimeMillis();
-            MotionEvent touch = MotionEvent.obtain(now, now, action, x, y, 1.0f, 1.0f, 0, 1.0f, presure, InputDevice.SOURCE_TOUCHSCREEN, 0);
-            InputManager.getInstance().injectInputEvent(touch, InputManager.INJECT_INPUT_EVENT_MODE_ASYNC);
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    synchronized (mEventLock) {
+                        if (eventBuf.position() == 0) {
+                            mEventLock.wait();
+                        } else {
+                            eventBuf.flip();
+                            eventBuf.get(head);
+                            if (head[2] == (byte) 0x03 && head[3] == (byte) 0x01) {
+                                eventBuf.get(tEvent);
+                                int x = (tEvent[2] & 0xFF) << 8 | (tEvent[3] & 0xFF);
+                                int y = (tEvent[4] & 0xFF) << 8 | (tEvent[5] & 0xFF);
+                                int w = (tEvent[6] & 0xFF) << 8 | (tEvent[7] & 0xFF);
+                                int h = (tEvent[8] & 0xFF) << 8 | (tEvent[9] & 0xFF);
+                                float fx = x * 1080 / w;
+                                float fy = y * 2160 / h;
+                                int action = MotionEvent.ACTION_UP;
+                                float pressure = 0.0f;
+                                switch ((tEvent[1] & 0xFF)) {
+                                    case 0x00:
+                                        action = MotionEvent.ACTION_DOWN;
+                                        pressure = 1.0f;
+                                        break;
+                                    case 0x01:
+                                        action = MotionEvent.ACTION_MOVE;
+                                        pressure = 1.0f;
+                                        break;
+                                    case 0x02:
+                                        action = MotionEvent.ACTION_UP;
+                                        pressure = 0.0f;
+                                        break;
+                                }
+                                sendTouchEvent(action, fx, fy, pressure);
+                                FlyLog.e("sendTouchEvent action=%d, fx=%f, fy=%f, pressure=%f", action, fx, fy, pressure);
+                            } else if (head[2] == (byte) 0x03 && head[3] == (byte) 0x02) {
+                                eventBuf.get(kEvent);
+                                int keycode = kEvent[1] & 0x00FF;
+                                if (keycode == 158) keycode = 4;
+                                FlyLog.e("sendKeyEvent keycode=%d", keycode);
+                                sendKeyEvent(keycode);
+                            }
+                            eventBuf.compact();
+                        }
+                    }
+                } catch (Exception e) {
+                    FlyLog.e(e.toString());
+                }
+            }
         }
 
         @Override
         public void notifyEvent(ArrayList<Byte> event) throws RemoteException {
-            try {
-                if (event.get(2) == (byte) 0x03 && event.get(3) == (byte) 0x01) {
-                    int x = (event.get(18)&0xFF)<<8|(event.get(19)&0xFF);
-                    int y = (event.get(20)&0xFF)<<8|(event.get(21)&0xFF);;
-                    int w = (event.get(22)&0xFF)<<8|(event.get(23)&0xFF);;
-                    int h = (event.get(24)&0xFF)<<8|(event.get(25)&0xFF);;
-                    x = x * 1080 / w;
-                    y = y * 2160 / h;
-                    int action = (event.get(17)&0xFF)==0x02 ? KeyEvent.ACTION_UP : KeyEvent.ACTION_DOWN;
-                    sendTouchEvent(action,x, y, 1.0f);
-                } else if (event.get(2) == (byte) 0x03 && event.get(3) == (byte) 0x02) {
-                    sendKeyEvent((int) event.get(17));
+            synchronized (mEventLock) {
+                if (eventBuf.position() > 1024) {
+                    eventBuf.clear();
                 }
-            }catch (Exception e){
-                FlyLog.e(e.toString());
+                byte data[] = new byte[event.size()];
+                for (int i = 0; i < event.size(); i++) {
+                    data[i] = event.get(i);
+                }
+                eventBuf.put(data, 0, event.size());
+                mEventLock.notify();
             }
+        }
+
+        private void sendKeyEvent(int keyCode) {
+            final long now = SystemClock.uptimeMillis();
+            KeyEvent key1 = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0);
+            InputManager.getInstance().injectInputEvent(key1, InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH);
+            KeyEvent key2 = new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0);
+            InputManager.getInstance().injectInputEvent(key2, InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH);
+        }
+
+        private void sendTouchEvent(int action, float x, float y, float pressure) {
+            final long now = SystemClock.uptimeMillis();
+            MotionEvent event = MotionEvent.obtain(now, now, action, x, y, pressure, DEFAULT_SIZE,
+                    DEFAULT_META_STATE, DEFAULT_PRECISION_X, DEFAULT_PRECISION_Y,
+                    InputDevice.SOURCE_TOUCHSCREEN, DEFAULT_EDGE_FLAGS);
+            event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            InputManager.getInstance().injectInputEvent(event, InputManager.INJECT_INPUT_EVENT_MODE_WAIT_FOR_FINISH);
         }
     }
 }
